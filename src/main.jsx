@@ -95,6 +95,26 @@ function App() {
     loadData();
   }, []);
 
+  /*
+   * ==========================================================
+   * TIMELINE AUTO REFRESH
+   * ==========================================================
+   *
+   * Whenever the user opens the Timeline tab,
+   * automatically load the latest events.
+   *
+   * This removes the need to manually click
+   * "Load SUB-10001".
+   */
+  useEffect(() => {
+    if (
+      mode === "ops" &&
+      tab === "timeline"
+    ) {
+      loadEvents("SUB-10001");
+    }
+  }, [mode, tab]);
+
   function openProduct(product) {
     setSelectedProduct(product);
     setFrequency("MONTHLY");
@@ -158,6 +178,7 @@ function App() {
       setCheckoutResult(
         data
       );
+
       return;
     }
 
@@ -423,6 +444,10 @@ function App() {
 
       await loadData();
 
+      /*
+       * Refresh Timeline immediately after
+       * every payment simulation.
+       */
       await loadEvents(
         "SUB-10001"
       );
@@ -487,8 +512,11 @@ function App() {
           `${API}/subscriptions/${subscriptionId}/events`
         );
 
+      const data =
+        await response.json();
+
       setEvents(
-        await response.json()
+        data
       );
     } catch (error) {
       console.error(
@@ -1549,7 +1577,7 @@ function App() {
                   )
                 }
               >
-                Load SUB-10001
+                Refresh SUB-10001
               </button>
 
               <div className="timeline">
