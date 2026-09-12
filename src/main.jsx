@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 
-const API = "http://localhost:4000/api";
+const API = "https://YOUR-BACKEND-VERCEL-URL/api";
 
 function App() {
   const [tab, setTab] = useState("dashboard");
