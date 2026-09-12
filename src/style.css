@@ -1,214 +1,726 @@
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: Arial, sans-serif;
   margin: 0;
-  background: #f5f7fb;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  background: #f6f7fb;
   color: #172033;
 }
 
-/* =========================
-   HEADER
-   ========================= */
-
-header {
-  background: #172033;
-  color: white;
-  padding: 22px 28px;
+button,
+input,
+select {
+  font: inherit;
 }
-
-header h1 {
-  margin: 0 0 5px;
-}
-
-header p {
-  margin: 0;
-  opacity: 0.75;
-}
-
-/* =========================
-   NAVIGATION
-   ========================= */
-
-nav {
-  padding: 12px 28px;
-  background: white;
-  border-bottom: 1px solid #ddd;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-nav button {
-  padding: 9px 12px;
-  border: 1px solid #ccd2dc;
-  border-radius: 8px;
-  background: white;
-  color: #172033;
-  cursor: pointer;
-  margin: 3px;
-}
-
-nav button:hover {
-  background: #eef2f7;
-}
-
-nav button.active {
-  background: #172033;
-  color: white;
-}
-
-/* =========================
-   GENERAL BUTTONS
-   ========================= */
 
 button {
-  padding: 9px 12px;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* =========================================================
+   STORE HEADER
+========================================================= */
+
+.store-header {
+  background: #172033;
+  color: white;
+  padding: 22px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.brand {
+  font-size: 24px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: -0.5px;
+}
+
+.store-header nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.store-header nav button {
+  background: transparent;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 9px;
+  padding: 10px 16px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.store-header nav button:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.store-header nav button.nav-active {
+  background: white;
+  color: #172033;
+}
+
+/* =========================================================
+   CUSTOMER PAGES
+========================================================= */
+
+.customer-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 48px 28px 70px;
+}
+
+.hero {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 70px 28px 45px;
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #667085;
+  margin-bottom: 14px;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 1.03;
+  letter-spacing: -2.5px;
+}
+
+.hero p {
+  margin: 25px 0 0;
+  font-size: 20px;
+  color: #596273;
+  max-width: 700px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   STORE PRODUCT SECTION
+========================================================= */
+
+.section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 28px 70px;
+}
+
+.section-title {
+  margin-bottom: 28px;
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: -0.7px;
+}
+
+.section-title p {
+  margin: 8px 0 0;
+  color: #667085;
+  font-size: 16px;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.product-card {
+  background: white;
+  border: 1px solid #e2e6ee;
+  border-radius: 16px;
+  padding: 28px;
+  min-height: 300px;
+  box-shadow: 0 8px 25px rgba(23, 32, 51, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card:hover {
+  box-shadow: 0 12px 30px rgba(23, 32, 51, 0.08);
+}
+
+.product-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: #f1f3f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 27px;
+  margin-bottom: 22px;
+}
+
+.product-card h3 {
+  margin: 0 0 10px;
+  font-size: 23px;
+}
+
+.product-card p {
+  color: #667085;
+  line-height: 1.55;
+  min-height: 50px;
+  margin: 0 0 20px;
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.price-row strong {
+  font-size: 30px;
+}
+
+.price-row span {
+  color: #667085;
+}
+
+.saving {
+  color: #277044;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 6px 0 18px;
+}
+
+.saving.large {
+  font-size: 16px;
+}
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.primary {
+  background: #172033;
+  color: white;
+  border: 1px solid #172033;
+  border-radius: 9px;
+  padding: 11px 18px;
+  font-weight: 700;
+}
+
+.primary:hover {
+  background: #30394a;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.back-button {
+  background: transparent;
+  border: 0;
+  color: #596273;
+  padding: 5px 0;
+  margin: 0 0 28px;
+  font-weight: 700;
+}
+
+.back-button:hover {
+  color: #172033;
+}
+
+/* =========================================================
+   PRODUCT DETAILS
+========================================================= */
+
+.product-detail {
+  background: white;
+  border: 1px solid #e2e6ee;
+  border-radius: 18px;
+  padding: 42px;
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 45px;
+  max-width: 950px;
+  margin: 20px auto;
+  box-shadow: 0 8px 30px rgba(23, 32, 51, 0.05);
+}
+
+.product-detail-icon {
+  width: 140px;
+  height: 140px;
+  border-radius: 24px;
+  background: #f1f3f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 58px;
+}
+
+.product-detail h1 {
+  margin: 0 0 12px;
+  font-size: 40px;
+}
+
+.product-detail p {
+  color: #667085;
+  line-height: 1.6;
+}
+
+.detail-price {
+  font-size: 36px;
+  font-weight: 800;
+  margin-top: 22px;
+}
+
+.detail-price span {
+  font-size: 15px;
+  color: #667085;
+  font-weight: 500;
+}
+
+.product-detail select {
+  width: 220px;
+  padding: 11px 13px;
   border: 1px solid #ccd2dc;
   border-radius: 8px;
   background: white;
-  color: #172033;
-  cursor: pointer;
-  margin: 3px;
+  margin-bottom: 20px;
 }
 
-button:hover {
-  background: #eef2f7;
-}
-
-button.primary {
-  background: #172033;
-  color: white;
-  border-color: #172033;
-}
-
-/* =========================
-   MAIN
-   ========================= */
-
-main {
-  max-width: 1150px;
-  margin: auto;
-  padding: 25px;
-}
-
-/* =========================
-   GRID
-   ========================= */
-
-.grid {
+.benefits {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  gap: 10px;
+  margin: 18px 0 25px;
+  color: #394150;
 }
 
-/* =========================
-   CARDS
-   ========================= */
+/* =========================================================
+   CHECKOUT
+========================================================= */
 
-.card {
+.checkout-layout {
+  display: grid;
+  grid-template-columns: 1.35fr 0.85fr;
+  gap: 25px;
+  max-width: 1050px;
+  margin: 20px auto;
+}
+
+.checkout-card,
+.order-summary {
   background: white;
-  border: 1px solid #e1e5ec;
-  border-radius: 12px;
-  padding: 18px;
+  border: 1px solid #e2e6ee;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 8px 25px rgba(23, 32, 51, 0.04);
+}
+
+.checkout-card h1 {
+  margin: 0 0 10px;
+  font-size: 34px;
+}
+
+.checkout-card > p {
+  color: #667085;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.checkout-card label {
+  display: block;
+  font-weight: 700;
   margin-bottom: 18px;
 }
 
-.card b {
+.checkout-card input[type="text"] {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px 13px;
+  border: 1px solid #ccd2dc;
+  border-radius: 8px;
+  outline: none;
+}
+
+.checkout-card input[type="text"]:focus {
+  border-color: #172033;
+  box-shadow: 0 0 0 3px rgba(23, 32, 51, 0.08);
+}
+
+.demo-note {
+  background: #fff7e6;
+  border: 1px solid #f0dfb4;
+  color: #7b5b16;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+
+.consent-box {
+  display: flex !important;
+  gap: 10px;
+  align-items: flex-start;
+  font-weight: 500 !important;
+  line-height: 1.5;
+}
+
+.consent-box input {
+  margin-top: 4px;
+}
+
+.order-summary h3 {
+  margin-top: 0;
+  font-size: 20px;
+}
+
+.summary-product,
+.summary-line,
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 13px 0;
+}
+
+.summary-product {
+  font-weight: 700;
+}
+
+.summary-line {
+  color: #667085;
+}
+
+.summary-total {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.order-summary hr {
+  border: 0;
+  border-top: 1px solid #e6e9ef;
+}
+
+/* =========================================================
+   ERRORS
+========================================================= */
+
+.error {
+  background: #fff0f0;
+  border: 1px solid #efcaca;
+  color: #a52b2b;
+  padding: 11px 13px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+/* =========================================================
+   CONFIRMATION
+========================================================= */
+
+.confirmation-card {
+  max-width: 850px;
+  margin: 30px auto;
+  background: white;
+  border: 1px solid #e2e6ee;
+  border-radius: 18px;
+  padding: 42px;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(23, 32, 51, 0.05);
+}
+
+.success-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #e7f6ec;
+  color: #277044;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.confirmation-card h1 {
+  margin: 0 0 8px;
+  font-size: 38px;
+}
+
+.confirmation-card > p {
+  color: #667085;
+}
+
+.confirmation-grid {
+  margin: 30px 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: #e5e8ee;
+  border: 1px solid #e5e8ee;
+  border-radius: 10px;
+  overflow: hidden;
+  text-align: left;
+}
+
+.confirmation-grid > div {
+  background: white;
+  padding: 16px;
+}
+
+.confirmation-grid span {
+  display: block;
+  color: #667085;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.confirmation-grid strong {
+  display: block;
+  font-size: 14px;
+}
+
+.payment-explanation {
+  text-align: left;
+  background: #eef5ff;
+  padding: 16px;
+  border-radius: 9px;
+  margin-bottom: 24px;
+}
+
+.payment-explanation p {
+  margin-bottom: 0;
+  color: #4d596b;
+  line-height: 1.55;
+}
+
+/* =========================================================
+   OPERATIONS CONSOLE
+========================================================= */
+
+main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 35px 28px 60px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 25px;
+}
+
+.page-header h1 {
+  margin: 0 0 6px;
+  font-size: 32px;
+}
+
+.page-header p {
+  margin: 0;
+  color: #667085;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 25px;
+}
+
+.metric {
+  background: white;
+  border: 1px solid #e2e6ee;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.metric span {
+  display: block;
+  color: #667085;
+  font-size: 13px;
+}
+
+.metric strong {
   display: block;
   font-size: 28px;
   margin-top: 8px;
 }
 
-/* =========================
-   TWO COLUMN LAYOUT
-   ========================= */
-
-.two {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
+.panel {
+  background: white;
+  border: 1px solid #e2e6ee;
+  border-radius: 13px;
+  padding: 22px;
+  margin-bottom: 20px;
 }
 
-/* =========================
-   TEXT
-   ========================= */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
 
-small {
+.panel-header h2 {
+  margin: 0 0 5px;
+  font-size: 21px;
+}
+
+.panel-header p {
+  margin: 0;
   color: #667085;
+  font-size: 14px;
 }
 
-/* =========================
-   NOTE
-   ========================= */
+/* =========================================================
+   TABLE
+========================================================= */
 
-.note {
-  background: #eef5ff;
-  padding: 12px;
-  border-radius: 8px;
+.table-wrap {
+  overflow-x: auto;
 }
-
-/* =========================
-   BADGES
-   ========================= */
-
-.badge {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 20px;
-  background: #eef2f7;
-  font-size: 12px;
-}
-
-/* =========================
-   TABLES
-   ========================= */
 
 table {
   width: 100%;
   border-collapse: collapse;
 }
 
+th {
+  color: #667085;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background: #f8f9fb;
+}
+
 th,
 td {
   text-align: left;
-  padding: 11px;
-  border-bottom: 1px solid #eee;
+  padding: 12px;
+  border-bottom: 1px solid #edf0f4;
+  white-space: nowrap;
 }
 
-/* =========================
-   CODE / RESPONSE
-   ========================= */
-
-pre {
-  background: #111827;
-  color: #dbeafe;
-  padding: 14px;
-  border-radius: 9px;
-  overflow: auto;
+tbody tr:hover {
+  background: #fafbfc;
 }
 
-/* =========================
-   TIMELINE
-   ========================= */
+/* =========================================================
+   STATUS
+========================================================= */
 
-.timeline {
-  border-left: 3px solid #ccd2dc;
-  padding-left: 20px;
-  margin-top: 18px;
+.status {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
 }
 
-.timeline div {
-  margin-bottom: 16px;
+.status.ACTIVE,
+.status.SUCCESS {
+  background: #e8f6ed;
+  color: #277044;
 }
 
-/* =====================================================
-   PAYMENT SCENARIO BUTTONS
-   ===================================================== */
+.status.PAUSED {
+  background: #eef1f5;
+  color: #596273;
+}
+
+.status.UNKNOWN {
+  background: #fff4dc;
+  color: #986b14;
+}
+
+.status.DECLINED,
+.status.CANCELLED {
+  background: #fff0f0;
+  color: #a52b2b;
+}
+
+.status.PAYMENT_RETRY {
+  background: #fff4dc;
+  color: #986b14;
+}
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.action-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.action-buttons button {
+  padding: 7px 10px;
+  border: 1px solid #ccd2dc;
+  background: white;
+  border-radius: 7px;
+  color: #30394a;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.action-buttons button:hover {
+  background: #eef2f7;
+}
+
+/* =========================================================
+   PAYMENT SIMULATOR
+========================================================= */
+
+.simulator label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.simulator select {
+  display: block;
+  width: 100%;
+  max-width: 500px;
+  margin-top: 7px;
+  padding: 10px 12px;
+  border: 1px solid #ccd2dc;
+  border-radius: 8px;
+  background: white;
+}
+
+/* =========================================================
+   SCENARIO BUTTONS
+========================================================= */
 
 .scenario-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 15px;
 }
 
 .scenario-buttons .scenario {
@@ -219,6 +731,7 @@ pre {
   border-radius: 7px;
   font-size: 12px;
   font-weight: 700;
+  margin: 0;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
@@ -230,8 +743,6 @@ pre {
   background: #f3f5f7;
 }
 
-/* SUCCESS */
-
 .scenario-buttons .scenario.selected.success {
   background: #172033;
   color: #ffffff;
@@ -241,8 +752,6 @@ pre {
     0 0 0 3px rgba(23, 32, 51, 0.22);
   transform: translateY(-1px);
 }
-
-/* DECLINED */
 
 .scenario-buttons .scenario.selected.decline {
   background: #fff0f0;
@@ -254,8 +763,6 @@ pre {
   transform: translateY(-1px);
 }
 
-/* UNKNOWN */
-
 .scenario-buttons .scenario.selected.unknown {
   background: #fff5df;
   color: #986b14;
@@ -265,8 +772,6 @@ pre {
     0 0 0 3px rgba(152, 107, 20, 0.18);
   transform: translateY(-1px);
 }
-
-/* 3DS */
 
 .scenario-buttons .scenario.selected.three-ds {
   background: #eef1f5;
@@ -278,8 +783,6 @@ pre {
   transform: translateY(-1px);
 }
 
-/* DUPLICATE */
-
 .scenario-buttons .scenario.selected.duplicate {
   background: #eef1f5;
   color: #172033;
@@ -290,19 +793,88 @@ pre {
   transform: translateY(-1px);
 }
 
-/* =====================================================
+/* =========================================================
+   RESPONSE
+========================================================= */
+
+.response-box {
+  margin-top: 20px;
+}
+
+.response-title {
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+pre {
+  background: #111827;
+  color: #dbeafe;
+  padding: 15px;
+  border-radius: 9px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+/* =========================================================
+   TIMELINE
+========================================================= */
+
+.timeline {
+  position: relative;
+  margin: 10px 0;
+  padding-left: 30px;
+}
+
+.timeline-item {
+  position: relative;
+  padding: 0 0 22px 15px;
+  border-left: 2px solid #d9dee7;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -7px;
+  top: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #172033;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px #172033;
+}
+
+.timeline-item strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.timeline-item small {
+  color: #667085;
+}
+
+/* =========================================================
    RECONCILIATION
-   ===================================================== */
+========================================================= */
+
+.success-message {
+  margin-top: 15px;
+  background: #e8f6ed;
+  color: #277044;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+}
 
 /*
-   Important:
-   These selectors are intentionally specific so that
-   scenario-button styling cannot affect Reconcile.
+   IMPORTANT:
+   Reconcile uses className="primary".
+   Keep it explicitly styled so it cannot be
+   affected by scenario-button styles.
 */
 
-.reconciliation-table button,
-.reconciliation-card button,
-button.reconcile-btn {
+table button.primary {
   background: #172033 !important;
   color: #ffffff !important;
   border: 1px solid #172033 !important;
@@ -310,84 +882,177 @@ button.reconcile-btn {
   border-radius: 7px !important;
   font-size: 12px !important;
   font-weight: 700 !important;
-  min-width: 90px !important;
-  height: auto !important;
-  cursor: pointer !important;
-  opacity: 1 !important;
+  margin: 0 !important;
+  min-width: 90px;
 }
 
-.reconciliation-table button:hover,
-.reconciliation-card button:hover,
-button.reconcile-btn:hover {
+table button.primary:hover {
   background: #30394a !important;
   color: #ffffff !important;
 }
 
-/*
-   Fallback for the current table structure:
-   Any button inside a payment/reconciliation table
-   will remain visible.
-*/
+/* =========================================================
+   TRACEABILITY
+========================================================= */
 
-table button {
-  background: #172033;
-  color: #ffffff;
-  border: 1px solid #172033;
-  padding: 8px 14px;
-  border-radius: 7px;
+.traceability {
+  display: grid;
+  gap: 10px;
+}
+
+.traceability > div {
+  display: grid;
+  grid-template-columns: 80px 1fr 180px;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  border: 1px solid #e5e8ee;
+  border-radius: 9px;
+}
+
+.traceability strong {
+  font-size: 13px;
+}
+
+.traceability span {
+  color: #4d596b;
+  line-height: 1.4;
+}
+
+.traceability em {
+  font-style: normal;
   font-size: 12px;
   font-weight: 700;
-  cursor: pointer;
+  color: #596273;
+  background: #f1f3f7;
+  padding: 6px 9px;
+  border-radius: 6px;
+  text-align: center;
 }
 
-table button:hover {
-  background: #30394a;
-  color: #ffffff;
+/* =========================================================
+   GENERAL CARDS / LEGACY SUPPORT
+========================================================= */
+
+.card {
+  background: white;
+  border: 1px solid #e2e6ee;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 18px;
 }
 
-/* =====================================================
+.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.note {
+  background: #eef5ff;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+small {
+  color: #667085;
+}
+
+/* =========================================================
    RESPONSIVE
-   ===================================================== */
+========================================================= */
 
-@media (max-width: 750px) {
-  .grid,
-  .two {
+@media (max-width: 850px) {
+  .store-header {
+    padding: 18px 22px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero {
+    padding: 45px 22px 30px;
+  }
+
+  .section {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .product-detail {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .traceability > div {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .customer-page {
+    padding: 30px 16px 50px;
+  }
+
+  .hero {
+    padding: 35px 16px 25px;
+  }
+
+  .section {
+    padding: 15px 16px 50px;
+  }
+
+  .hero h1 {
+    font-size: 42px;
+  }
+
+  .product-card {
+    padding: 22px;
+  }
+
+  .product-detail {
+    padding: 25px;
+  }
+
+  .checkout-card,
+  .order-summary,
+  .confirmation-card {
+    padding: 22px;
+  }
+
+  .confirmation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics {
     grid-template-columns: 1fr 1fr;
   }
 
   main {
+    padding: 25px 16px 50px;
+  }
+
+  .panel {
     padding: 16px;
   }
 
-  table {
-    font-size: 12px;
-  }
-
-  th,
-  td {
-    padding: 8px;
-  }
-
   .scenario-buttons {
-    gap: 5px;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .scenario-buttons .scenario {
-    padding: 8px 10px;
-  }
-}
-
-@media (max-width: 520px) {
-  .grid,
-  .two {
-    grid-template-columns: 1fr;
-  }
-
-  nav {
-    padding: 10px 15px;
-  }
-
-  main {
-    padding: 12px;
+    width: 100%;
   }
 }
