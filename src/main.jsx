@@ -102,10 +102,8 @@ function App() {
    *
    * Whenever the user opens the Timeline tab,
    * automatically load the latest events.
-   *
-   * This removes the need to manually click
-   * "Load SUB-10001".
    */
+
   useEffect(() => {
     if (
       mode === "ops" &&
@@ -213,10 +211,6 @@ function App() {
    *      SAME idempotency key
    *
    *   Backend detects the second request as duplicate.
-   *
-   *   Example idempotency key:
-   *
-   *   DEMO-DUPLICATE-1789236139422
    */
 
   async function simulate(outcome) {
@@ -236,10 +230,6 @@ function App() {
       try {
         /*
          * Generate the duplicate-demo idempotency key.
-         *
-         * Example:
-         *
-         * DEMO-DUPLICATE-1789236139422
          */
 
         const duplicateKey =
@@ -444,10 +434,6 @@ function App() {
 
       await loadData();
 
-      /*
-       * Refresh Timeline immediately after
-       * every payment simulation.
-       */
       await loadEvents(
         "SUB-10001"
       );
@@ -1660,7 +1646,9 @@ function App() {
                       >
 
                         <td>
-                          {p.id}
+                          {
+                            p.id
+                          }
                         </td>
 
                         <td>
