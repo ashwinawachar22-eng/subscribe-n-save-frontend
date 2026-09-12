@@ -1,0 +1,139 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #f5f7fb;
+  color: #172033;
+}
+
+header {
+  background: #172033;
+  color: white;
+  padding: 22px 28px;
+}
+
+header h1 {
+  margin: 0 0 5px;
+}
+
+header p {
+  margin: 0;
+  opacity: 0.75;
+}
+
+nav {
+  padding: 12px 28px;
+  background: white;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+button {
+  padding: 9px 12px;
+  border: 1px solid #ccd2dc;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  margin: 3px;
+}
+
+button:hover {
+  background: #eef2f7;
+}
+
+.active,
+.primary {
+  background: #172033;
+  color: white;
+}
+
+main {
+  max-width: 1150px;
+  margin: auto;
+  padding: 25px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e1e5ec;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.card b {
+  display: block;
+  font-size: 28px;
+  margin-top: 8px;
+}
+
+small {
+  color: #667085;
+}
+
+.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 11px;
+  border-bottom: 1px solid #eee;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: #eef2f7;
+  font-size: 12px;
+}
+
+.note {
+  background: #eef5ff;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+pre {
+  background: #111827;
+  color: #dbeafe;
+  padding: 14px;
+  border-radius: 9px;
+  overflow: auto;
+}
+
+.timeline {
+  border-left: 3px solid #ccd2dc;
+  padding-left: 20px;
+  margin-top: 18px;
+}
+
+.timeline div {
+  margin-bottom: 16px;
+}
+
+@media (max-width: 750px) {
+  .grid,
+  .two {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  main {
+    padding: 16px;
+  }
+}
