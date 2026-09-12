@@ -10,14 +10,26 @@ function App() {
   const [payments, setPayments] = useState([]);
   const [events, setEvents] = useState([]);
   const [result, setResult] = useState(null);
+
   const [lastIdempotencyKey, setLastIdempotencyKey] = useState(null);
+  const [selectedOutcome, setSelectedOutcome] = useState(null);
 
   async function loadData() {
-    const s = await fetch(`${API}/subscriptions`);
-    const p = await fetch(`${API}/payments`);
+    try {
+      const [subscriptionsResponse, paymentsResponse] =
+        await Promise.all([
+          fetch(`${API}/subscriptions`),
+          fetch(`${API}/payments`)
+        ]);
 
-    setSubscriptions(await s.json());
-    setPayments(await p.json());
+      setSubscriptions(await subscriptionsResponse.json());
+      setPayments(await paymentsResponse.json());
+    } catch (error) {
+      setResult({
+        error: "Unable to connect to backend",
+        details: error.message
+      });
+    }
   }
 
   useEffect(() => {
@@ -25,62 +37,101 @@ function App() {
   }, []);
 
   async function simulate(outcome, forceDuplicate = false) {
-    const idempotencyKey = forceDuplicate
+    const selectedKey = forceDuplicate
       ? lastIdempotencyKey
       : `SUB-10001-${Date.now()}`;
 
-    if (!idempotencyKey) {
+    if (!selectedKey) {
       setResult({
-        error: "Run a payment scenario first before testing duplicate request."
+        error:
+          "Run a payment scenario first before testing duplicate request."
       });
       return;
     }
 
+    setSelectedOutcome(
+      forceDuplicate ? "SUCCESS_DUPLICATE" : outcome
+    );
+
     if (!forceDuplicate) {
-      setLastIdempotencyKey(idempotencyKey);
+      setLastIdempotencyKey(selectedKey);
     }
 
-    const response = await fetch(`${API}/payments/simulate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        subscriptionId: "SUB-10001",
-        outcome: outcome,
-        amount: 999,
-        idempotencyKey: idempotencyKey
-      })
-    });
+    try {
+      const response = await fetch(`${API}/payments/simulate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          subscriptionId: "SUB-10001",
+          outcome: outcome,
+          amount: 999,
+          idempotencyKey: selectedKey
+        })
+      });
 
-    setResult(await response.json());
-    loadData();
+      const data = await response.json();
+
+      setResult(data);
+      await loadData();
+    } catch (error) {
+      setResult({
+        error: "Payment request failed",
+        details: error.message
+      });
+    }
   }
 
   async function reconcile(paymentId) {
-    const response = await fetch(
-      `${API}/payments/${paymentId}/reconcile`,
-      { method: "POST" }
-    );
+    try {
+      const response = await fetch(
+        `${API}/payments/${paymentId}/reconcile`,
+        {
+          method: "POST"
+        }
+      );
 
-    setResult(await response.json());
-    loadData();
+      setResult(await response.json());
+      await loadData();
+    } catch (error) {
+      setResult({
+        error: "Reconciliation failed",
+        details: error.message
+      });
+    }
   }
 
   async function loadEvents(subscriptionId) {
-    const response = await fetch(
-      `${API}/subscriptions/${subscriptionId}/events`
-    );
+    try {
+      const response = await fetch(
+        `${API}/subscriptions/${subscriptionId}/events`
+      );
 
-    setEvents(await response.json());
+      setEvents(await response.json());
+    } catch (error) {
+      setEvents([
+        {
+          time: new Date().toISOString(),
+          text: `Unable to load events: ${error.message}`
+        }
+      ]);
+    }
   }
 
   async function subscriptionAction(id, action) {
-    await fetch(`${API}/subscriptions/${id}/${action}`, {
-      method: "POST"
-    });
+    try {
+      await fetch(`${API}/subscriptions/${id}/${action}`, {
+        method: "POST"
+      });
 
-    loadData();
+      await loadData();
+    } catch (error) {
+      setResult({
+        error: `Unable to ${action} subscription`,
+        details: error.message
+      });
+    }
   }
 
   return (
@@ -140,8 +191,7 @@ function App() {
               <h3>Architecture</h3>
 
               <p>
-                Customer → Merchant → PSP → Acquirer →
-                Card Network → Issuer
+                Customer → Merchant → PSP → Acquirer → Card Network → Issuer
               </p>
 
               <p className="note">
@@ -200,6 +250,14 @@ function App() {
                         >
                           Resume
                         </button>
+
+                        <button
+                          onClick={() =>
+                            subscriptionAction(s.id, "cancel")
+                          }
+                        >
+                          Cancel
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -226,44 +284,69 @@ function App() {
                 </p>
 
                 <p>
-                  <b>Payment Type:</b> Merchant-Initiated Transaction
-                  (MIT)
+                  <b>Payment Type:</b> Merchant-Initiated Transaction (MIT)
                 </p>
 
                 <p>
                   <b>Payment Method:</b> Tokenized card •••• 4242
                 </p>
 
-                <button
-                  className="primary"
-                  onClick={() => simulate("SUCCESS")}
-                >
-                  SUCCESS
-                </button>
+                <div className="scenario-buttons">
+                  <button
+                    className={
+                      selectedOutcome === "SUCCESS"
+                        ? "primary selected"
+                        : ""
+                    }
+                    onClick={() => simulate("SUCCESS")}
+                  >
+                    SUCCESS
+                  </button>
 
-                <button
-                  onClick={() => simulate("DECLINED")}
-                >
-                  DECLINE
-                </button>
+                  <button
+                    className={
+                      selectedOutcome === "DECLINED"
+                        ? "primary selected"
+                        : ""
+                    }
+                    onClick={() => simulate("DECLINED")}
+                  >
+                    DECLINE
+                  </button>
 
-                <button
-                  onClick={() => simulate("UNKNOWN")}
-                >
-                  TIMEOUT / UNKNOWN
-                </button>
+                  <button
+                    className={
+                      selectedOutcome === "UNKNOWN"
+                        ? "primary selected"
+                        : ""
+                    }
+                    onClick={() => simulate("UNKNOWN")}
+                  >
+                    TIMEOUT / UNKNOWN
+                  </button>
 
-                <button
-                  onClick={() => simulate("3DS_REQUIRED")}
-                >
-                  3DS REQUIRED
-                </button>
+                  <button
+                    className={
+                      selectedOutcome === "3DS_REQUIRED"
+                        ? "primary selected"
+                        : ""
+                    }
+                    onClick={() => simulate("3DS_REQUIRED")}
+                  >
+                    3DS REQUIRED
+                  </button>
 
-                <button
-                  onClick={() => simulate("SUCCESS", true)}
-                >
-                  DUPLICATE REQUEST
-                </button>
+                  <button
+                    className={
+                      selectedOutcome === "SUCCESS_DUPLICATE"
+                        ? "primary selected"
+                        : ""
+                    }
+                    onClick={() => simulate("SUCCESS", true)}
+                  >
+                    DUPLICATE REQUEST
+                  </button>
+                </div>
               </div>
 
               <div className="card">
@@ -319,9 +402,7 @@ function App() {
             <div className="card">
               <button
                 className="primary"
-                onClick={() =>
-                  loadEvents("SUB-10001")
-                }
+                onClick={() => loadEvents("SUB-10001")}
               >
                 Load SUB-10001
               </button>
@@ -344,8 +425,8 @@ function App() {
             <h2>Payment Reconciliation</h2>
 
             <div className="note">
-              UNKNOWN/TIMEOUT must not automatically become
-              DECLINED. Reconcile before another charge.
+              UNKNOWN/TIMEOUT must not automatically become DECLINED.
+              Reconcile before another charge.
             </div>
 
             <div className="card">
@@ -364,9 +445,7 @@ function App() {
                   {payments.map((payment) => (
                     <tr key={payment.id}>
                       <td>{payment.id}</td>
-
                       <td>{payment.subscriptionId}</td>
-
                       <td>₹{payment.amount}</td>
 
                       <td>
@@ -454,6 +533,4 @@ function App() {
   );
 }
 
-createRoot(
-  document.getElementById("root")
-).render(<App />);
+createRoot(document.getElementById("root")).render(<App />);
