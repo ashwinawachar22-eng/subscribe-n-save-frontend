@@ -64,7 +64,7 @@ button {
 
 .store-header nav button.nav-active {
   background: #172033;
-  color: white;
+  color: #ffffff;
   font-weight: 700;
 }
 
@@ -210,7 +210,7 @@ button {
 }
 
 /* =========================
-   CUSTOMER PRODUCT / CHECKOUT
+   CUSTOMER PRODUCT
 ========================= */
 
 .customer-page {
@@ -300,6 +300,10 @@ input:focus {
   color: #3d4859;
 }
 
+/* =========================
+   CHECKOUT
+========================= */
+
 .checkout-layout {
   display: grid;
   grid-template-columns: 1fr 350px;
@@ -374,6 +378,33 @@ input:focus {
   font-size: 13px;
 }
 
+.order-summary h3 {
+  margin-top: 0;
+}
+
+.summary-product,
+.summary-line,
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.summary-product {
+  padding: 15px 0;
+}
+
+.summary-line {
+  padding: 8px 0;
+  color: #6d7686;
+  font-size: 14px;
+}
+
+.summary-total {
+  font-size: 17px;
+  margin-top: 15px;
+}
+
 /* =========================
    CONFIRMATION
 ========================= */
@@ -420,7 +451,7 @@ input:focus {
 }
 
 .confirmation-grid div {
-  background: white;
+  background: #ffffff;
   padding: 16px;
 }
 
@@ -486,7 +517,7 @@ input:focus {
 .ops-topbar button {
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: transparent;
-  color: white;
+  color: #ffffff;
   padding: 8px 13px;
   border-radius: 7px;
 }
@@ -626,11 +657,15 @@ th {
 .action-buttons button,
 .table-wrap td button {
   border: 1px solid #d8dde5;
-  background: white;
+  background: #ffffff;
   padding: 6px 9px;
   border-radius: 6px;
   font-size: 11px;
 }
+
+/* =========================
+   PAYMENT SIMULATOR
+========================= */
 
 .simulator {
   padding: 22px;
@@ -650,7 +685,13 @@ th {
   gap: 8px;
 }
 
-.scenario-buttons button {
+/*
+   IMPORTANT:
+   All simulator buttons use the same
+   base class. None is selected initially.
+*/
+
+.scenario-buttons .scenario {
   border: 1px solid #d8dde5;
   background: #ffffff;
   color: #30394a;
@@ -665,56 +706,88 @@ th {
     transform 0.15s ease;
 }
 
-.scenario-buttons button.primary {
-  background: #172033;
-  color: white;
-  border-color: #172033;
-}
-
-.scenario-buttons button.danger {
-  color: #a52b2b;
-}
-
-.scenario-buttons button.warning {
-  color: #986b14;
+.scenario-buttons .scenario:hover {
+  background: #f3f5f7;
 }
 
 /* =========================
-   SELECTED SCENARIO BUTTON
+   SELECTED - SUCCESS
 ========================= */
 
-.scenario-buttons button.selected {
-  font-weight: 800;
-  transform: translateY(-1px);
-  background: #e9edf3;
-  color: #172033;
-  border-color: #172033;
-  box-shadow:
-    0 0 0 3px rgba(23, 32, 51, 0.22);
-}
-
-.scenario-buttons button.primary.selected {
+.scenario-buttons
+  .scenario.selected.success {
   background: #172033;
   color: #ffffff;
   border-color: #172033;
+  font-weight: 800;
   box-shadow:
-    0 0 0 3px rgba(23, 32, 51, 0.22);
+    0 0 0 3px
+      rgba(23, 32, 51, 0.22);
+  transform: translateY(-1px);
 }
 
-.scenario-buttons button.danger.selected {
+/* =========================
+   SELECTED - DECLINE
+========================= */
+
+.scenario-buttons
+  .scenario.selected.decline {
   background: #fff0f0;
   color: #a52b2b;
   border-color: #a52b2b;
+  font-weight: 800;
   box-shadow:
-    0 0 0 3px rgba(165, 43, 43, 0.18);
+    0 0 0 3px
+      rgba(165, 43, 43, 0.18);
+  transform: translateY(-1px);
 }
 
-.scenario-buttons button.warning.selected {
+/* =========================
+   SELECTED - UNKNOWN
+========================= */
+
+.scenario-buttons
+  .scenario.selected.unknown {
   background: #fff5df;
   color: #986b14;
   border-color: #986b14;
+  font-weight: 800;
   box-shadow:
-    0 0 0 3px rgba(152, 107, 20, 0.18);
+    0 0 0 3px
+      rgba(152, 107, 20, 0.18);
+  transform: translateY(-1px);
+}
+
+/* =========================
+   SELECTED - 3DS
+========================= */
+
+.scenario-buttons
+  .scenario.selected.three-ds {
+  background: #eef1f5;
+  color: #172033;
+  border-color: #172033;
+  font-weight: 800;
+  box-shadow:
+    0 0 0 3px
+      rgba(23, 32, 51, 0.18);
+  transform: translateY(-1px);
+}
+
+/* =========================
+   SELECTED - DUPLICATE
+========================= */
+
+.scenario-buttons
+  .scenario.selected.duplicate {
+  background: #eef1f5;
+  color: #172033;
+  border-color: #172033;
+  font-weight: 800;
+  box-shadow:
+    0 0 0 3px
+      rgba(23, 32, 51, 0.18);
+  transform: translateY(-1px);
 }
 
 /* =========================
