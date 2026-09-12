@@ -28,7 +28,7 @@ const products = [
 
 /* =========================================================
    CUSTOMER CHECKOUT
-   Stable component - prevents input focus loss
+   Kept outside App so input focus is preserved
 ========================================================= */
 
 function Checkout({
@@ -78,7 +78,9 @@ function Checkout({
               type="text"
               value={customerName}
               onChange={(e) =>
-                setCustomerName(e.target.value)
+                setCustomerName(
+                  e.target.value
+                )
               }
               placeholder="e.g. Ashwin Awachar"
               autoComplete="name"
@@ -94,7 +96,10 @@ function Checkout({
               value={cardNumber}
               onChange={(e) =>
                 setCardNumber(
-                  e.target.value.replace(/\D/g, "")
+                  e.target.value.replace(
+                    /\D/g,
+                    ""
+                  )
                 )
               }
               maxLength={19}
@@ -113,7 +118,9 @@ function Checkout({
               type="checkbox"
               checked={consent}
               onChange={(e) =>
-                setConsent(e.target.checked)
+                setConsent(
+                  e.target.checked
+                )
               }
             />
 
@@ -229,6 +236,12 @@ function App() {
   const [paymentResponse, setPaymentResponse] =
     useState(null);
 
+  /*
+    IMPORTANT:
+    null = nothing selected
+    SUCCESS / DECLINED / UNKNOWN /
+    3DS_REQUIRED / DUPLICATE = selected button
+  */
   const [selectedOutcome, setSelectedOutcome] =
     useState(null);
 
@@ -242,16 +255,18 @@ function App() {
     useState("");
 
   /* =======================================================
-     LOAD DATA
+     LOAD OPERATIONS DATA
   ======================================================= */
 
   async function loadOperationsData() {
     try {
-      const [subscriptionsResponse, paymentsResponse] =
-        await Promise.all([
-          fetch(`${API}/subscriptions`),
-          fetch(`${API}/payments`),
-        ]);
+      const [
+        subscriptionsResponse,
+        paymentsResponse,
+      ] = await Promise.all([
+        fetch(`${API}/subscriptions`),
+        fetch(`${API}/payments`),
+      ]);
 
       const subscriptionsData =
         await subscriptionsResponse.json();
@@ -263,7 +278,9 @@ function App() {
         subscriptionsData
       );
 
-      setPayments(paymentsData);
+      setPayments(
+        paymentsData
+      );
 
       if (
         !selectedSubscription &&
@@ -282,7 +299,9 @@ function App() {
     loadOperationsData();
   }, []);
 
-  async function loadEvents(subscriptionId) {
+  async function loadEvents(
+    subscriptionId
+  ) {
     if (!subscriptionId) return;
 
     try {
@@ -290,7 +309,8 @@ function App() {
         `${API}/subscriptions/${subscriptionId}/events`
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       setEvents(data);
     } catch (err) {
@@ -300,7 +320,9 @@ function App() {
 
   useEffect(() => {
     if (selectedSubscription) {
-      loadEvents(selectedSubscription);
+      loadEvents(
+        selectedSubscription
+      );
     }
   }, [selectedSubscription]);
 
@@ -329,12 +351,17 @@ function App() {
     setError("");
 
     if (!customerName.trim()) {
-      setError("Please enter your name.");
+      setError(
+        "Please enter your name."
+      );
       return;
     }
 
     if (
-      cardNumber.replace(/\D/g, "").length < 12
+      cardNumber.replace(
+        /\D/g,
+        ""
+      ).length < 12
     ) {
       setError(
         "Please enter a valid demo card number."
@@ -356,36 +383,57 @@ function App() {
         `${API}/subscriptions/enroll`,
         {
           method: "POST",
+
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
+
           body: JSON.stringify({
             customerName,
-            plan: selectedProduct.name,
-            amount: selectedProduct.monthly,
+
+            plan:
+              selectedProduct.name,
+
+            amount:
+              selectedProduct.monthly,
+
             currency: "INR",
+
             frequency,
+
             paymentMethod:
-              cardNumber.replace(/\D/g, ""),
+              cardNumber.replace(
+                /\D/g,
+                ""
+              ),
+
             consent: true,
           }),
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.error || "Enrollment failed"
+          data.error ||
+            "Enrollment failed"
         );
       }
 
       setEnrollment(data);
-      setMode("confirmation");
+
+      setMode(
+        "confirmation"
+      );
 
       await loadOperationsData();
     } catch (err) {
-      setError(err.message);
+      setError(
+        err.message
+      );
     } finally {
       setLoading(false);
     }
@@ -395,58 +443,98 @@ function App() {
      PAYMENT SIMULATOR
   ======================================================= */
 
-  async function simulatePayment(outcome) {
-    setSelectedOutcome(outcome);
-    setPaymentResponse(null);
+  async function simulatePayment(
+    outcome
+  ) {
+    /*
+      Set selection FIRST.
+      This makes the clicked button
+      visually selected immediately.
+    */
+    setSelectedOutcome(
+      outcome
+    );
 
-    const key =
-      outcome === "DUPLICATE"
-        ? lastIdempotencyKey ||
-          `demo-${Date.now()}`
-        : `demo-${outcome}-${Date.now()}`;
+    setPaymentResponse(
+      null
+    );
 
-    if (outcome !== "DUPLICATE") {
-      setLastIdempotencyKey(key);
+    let key;
+
+    if (
+      outcome ===
+      "DUPLICATE"
+    ) {
+      key =
+        lastIdempotencyKey ||
+        `demo-${Date.now()}`;
+    } else {
+      key =
+        `demo-${outcome}-${Date.now()}`;
+
+      setLastIdempotencyKey(
+        key
+      );
     }
 
+    /*
+      DUPLICATE reuses the previous
+      successful request's idempotency key.
+    */
     const actualOutcome =
-      outcome === "DUPLICATE"
+      outcome ===
+      "DUPLICATE"
         ? "SUCCESS"
         : outcome;
 
     try {
-      const response = await fetch(
-        `${API}/payments/simulate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            subscriptionId:
-              selectedSubscription ||
-              "SUB-10001",
-            outcome: actualOutcome,
-            amount: 999,
-            idempotencyKey: key,
-          }),
-        }
+      const response =
+        await fetch(
+          `${API}/payments/simulate`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              subscriptionId:
+                selectedSubscription ||
+                "SUB-10001",
+
+              outcome:
+                actualOutcome,
+
+              amount: 999,
+
+              idempotencyKey:
+                key,
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      setPaymentResponse(
+        data
       );
-
-      const data = await response.json();
-
-      setPaymentResponse(data);
 
       await loadOperationsData();
 
-      if (selectedSubscription) {
+      if (
+        selectedSubscription
+      ) {
         await loadEvents(
           selectedSubscription
         );
       }
     } catch (err) {
       setPaymentResponse({
-        error: err.message,
+        error:
+          err.message,
       });
     }
   }
@@ -455,29 +543,38 @@ function App() {
      RECONCILIATION
   ======================================================= */
 
-  async function reconcile(paymentId) {
+  async function reconcile(
+    paymentId
+  ) {
     try {
-      const response = await fetch(
-        `${API}/payments/${paymentId}/reconcile`,
-        {
-          method: "POST",
-        }
+      const response =
+        await fetch(
+          `${API}/payments/${paymentId}/reconcile`,
+          {
+            method: "POST",
+          }
+        );
+
+      const data =
+        await response.json();
+
+      setPaymentResponse(
+        data
       );
-
-      const data = await response.json();
-
-      setPaymentResponse(data);
 
       await loadOperationsData();
 
-      if (selectedSubscription) {
+      if (
+        selectedSubscription
+      ) {
         await loadEvents(
           selectedSubscription
         );
       }
     } catch (err) {
       setPaymentResponse({
-        error: err.message,
+        error:
+          err.message,
       });
     }
   }
@@ -500,7 +597,9 @@ function App() {
 
       await loadOperationsData();
 
-      if (selectedSubscription) {
+      if (
+        selectedSubscription
+      ) {
         await loadEvents(
           selectedSubscription
         );
@@ -519,7 +618,9 @@ function App() {
       <header className="store-header">
         <div
           className="brand"
-          onClick={() => setMode("store")}
+          onClick={() =>
+            setMode("store")
+          }
         >
           Subscribe n Save
         </div>
@@ -571,8 +672,9 @@ function App() {
             </h1>
 
             <p>
-              Subscribe once, save every cycle,
-              and let us take care of the rest.
+              Subscribe once, save every
+              cycle, and let us take care
+              of the rest.
             </p>
           </div>
         </section>
@@ -580,57 +682,73 @@ function App() {
         <section className="section">
           <div className="section-title">
             <div>
-              <h2>Choose a product</h2>
+              <h2>
+                Choose a product
+              </h2>
 
               <p>
-                Subscribe and save compared with
-                one-time purchase.
+                Subscribe and save compared
+                with one-time purchase.
               </p>
             </div>
           </div>
 
           <div className="product-grid">
-            {products.map((product) => (
-              <div
-                className="product-card"
-                key={product.id}
-              >
-                <div className="product-icon">
-                  {product.id === "coffee"
-                    ? "☕"
-                    : "📦"}
-                </div>
-
-                <h3>{product.name}</h3>
-
-                <p>
-                  {product.description}
-                </p>
-
-                <div className="price-row">
-                  <strong>
-                    ₹{product.monthly}
-                  </strong>
-
-                  <span>
-                    / month
-                  </span>
-                </div>
-
-                <div className="saving">
-                  {product.saving}
-                </div>
-
-                <button
-                  className="primary full-width"
-                  onClick={() =>
-                    openProduct(product)
-                  }
+            {products.map(
+              (product) => (
+                <div
+                  className="product-card"
+                  key={product.id}
                 >
-                  Subscribe & Save
-                </button>
-              </div>
-            ))}
+                  <div className="product-icon">
+                    {product.id ===
+                    "coffee"
+                      ? "☕"
+                      : "📦"}
+                  </div>
+
+                  <h3>
+                    {product.name}
+                  </h3>
+
+                  <p>
+                    {
+                      product.description
+                    }
+                  </p>
+
+                  <div className="price-row">
+                    <strong>
+                      ₹
+                      {
+                        product.monthly
+                      }
+                    </strong>
+
+                    <span>
+                      / month
+                    </span>
+                  </div>
+
+                  <div className="saving">
+                    {
+                      product.saving
+                    }
+                  </div>
+
+                  <button
+                    className="primary full-width"
+                    onClick={() =>
+                      openProduct(
+                        product
+                      )
+                    }
+                  >
+                    Subscribe & Save
+                  </button>
+                </div>
+              )
+            )}
           </div>
         </section>
       </>
@@ -642,20 +760,24 @@ function App() {
   ======================================================= */
 
   function ProductDetails() {
-    if (!selectedProduct) return null;
+    if (!selectedProduct)
+      return null;
 
     return (
       <section className="customer-page">
         <button
           className="back-button"
-          onClick={() => setMode("store")}
+          onClick={() =>
+            setMode("store")
+          }
         >
           ← Back to products
         </button>
 
         <div className="product-detail">
           <div className="product-detail-icon">
-            {selectedProduct.id === "coffee"
+            {selectedProduct.id ===
+            "coffee"
               ? "☕"
               : "📦"}
           </div>
@@ -666,15 +788,22 @@ function App() {
             </div>
 
             <h1>
-              {selectedProduct.name}
+              {
+                selectedProduct.name
+              }
             </h1>
 
             <p>
-              {selectedProduct.description}
+              {
+                selectedProduct.description
+              }
             </p>
 
             <div className="detail-price">
-              ₹{selectedProduct.monthly}
+              ₹
+              {
+                selectedProduct.monthly
+              }
 
               <span>
                 / month
@@ -682,7 +811,9 @@ function App() {
             </div>
 
             <div className="saving large">
-              {selectedProduct.saving}
+              {
+                selectedProduct.saving
+              }
             </div>
 
             <h3>
@@ -708,25 +839,31 @@ function App() {
 
             <div className="benefits">
               <div>
-                ✓ Automatic recurring delivery
+                ✓ Automatic recurring
+                delivery
               </div>
 
               <div>
-                ✓ Subscribe & Save pricing
+                ✓ Subscribe & Save
+                pricing
               </div>
 
               <div>
-                ✓ Manage or cancel anytime
+                ✓ Manage or cancel
+                anytime
               </div>
 
               <div>
-                ✓ Secure payment tokenization
+                ✓ Secure payment
+                tokenization
               </div>
             </div>
 
             <button
               className="primary"
-              onClick={startCheckout}
+              onClick={
+                startCheckout
+              }
             >
               Continue to Checkout
             </button>
@@ -741,7 +878,8 @@ function App() {
   ======================================================= */
 
   function Confirmation() {
-    if (!enrollment) return null;
+    if (!enrollment)
+      return null;
 
     const {
       subscription,
@@ -764,8 +902,8 @@ function App() {
           </h1>
 
           <p>
-            Your Subscribe & Save subscription
-            is now active.
+            Your Subscribe & Save
+            subscription is now active.
           </p>
 
           <div className="confirmation-grid">
@@ -775,15 +913,21 @@ function App() {
               </span>
 
               <strong>
-                {subscription.id}
+                {
+                  subscription.id
+                }
               </strong>
             </div>
 
             <div>
-              <span>Plan</span>
+              <span>
+                Plan
+              </span>
 
               <strong>
-                {subscription.plan}
+                {
+                  subscription.plan
+                }
               </strong>
             </div>
 
@@ -793,7 +937,10 @@ function App() {
               </span>
 
               <strong>
-                ₹{subscription.amount}
+                ₹
+                {
+                  subscription.amount
+                }
               </strong>
             </div>
 
@@ -803,7 +950,9 @@ function App() {
               </span>
 
               <strong>
-                {subscription.nextBillingDate}
+                {
+                  subscription.nextBillingDate
+                }
               </strong>
             </div>
 
@@ -813,7 +962,9 @@ function App() {
               </span>
 
               <strong>
-                {subscription.paymentMethod}
+                {
+                  subscription.paymentMethod
+                }
               </strong>
             </div>
 
@@ -823,7 +974,9 @@ function App() {
               </span>
 
               <strong>
-                {payment.status}
+                {
+                  payment.status
+                }
               </strong>
             </div>
           </div>
@@ -834,13 +987,15 @@ function App() {
             </strong>
 
             <p>
-              Your initial payment was a{" "}
+              Your initial payment was
+              a{" "}
               <b>
                 CIT (Customer Initiated
                 Transaction)
               </b>
-              . Future scheduled subscription
-              payments will be{" "}
+              . Future scheduled
+              subscription payments will
+              be{" "}
               <b>
                 MIT (Merchant Initiated
                 Transactions)
@@ -870,7 +1025,8 @@ function App() {
   function Dashboard() {
     const active =
       subscriptions.filter(
-        (s) => s.status === "ACTIVE"
+        (s) =>
+          s.status === "ACTIVE"
       ).length;
 
     const retry =
@@ -914,12 +1070,16 @@ function App() {
             </span>
 
             <strong>
-              {subscriptions.length}
+              {
+                subscriptions.length
+              }
             </strong>
           </div>
 
           <div className="metric">
-            <span>Active</span>
+            <span>
+              Active
+            </span>
 
             <strong>
               {active}
@@ -937,7 +1097,9 @@ function App() {
           </div>
 
           <div className="metric">
-            <span>Paused</span>
+            <span>
+              Paused
+            </span>
 
             <strong>
               {paused}
@@ -972,7 +1134,8 @@ function App() {
             </h2>
 
             <p>
-              Manage subscription lifecycle.
+              Manage subscription
+              lifecycle.
             </p>
           </div>
         </div>
@@ -985,11 +1148,15 @@ function App() {
                 <th>
                   Customer
                 </th>
-                <th>Plan</th>
+                <th>
+                  Plan
+                </th>
                 <th>
                   Amount
                 </th>
-                <th>Status</th>
+                <th>
+                  Status
+                </th>
                 <th>
                   Next Billing
                 </th>
@@ -1002,11 +1169,17 @@ function App() {
             <tbody>
               {subscriptions.map(
                 (s) => (
-                  <tr key={s.id}>
-                    <td>{s.id}</td>
+                  <tr
+                    key={s.id}
+                  >
+                    <td>
+                      {s.id}
+                    </td>
 
                     <td>
-                      {s.customer}
+                      {
+                        s.customer
+                      }
                     </td>
 
                     <td>
@@ -1014,19 +1187,24 @@ function App() {
                     </td>
 
                     <td>
-                      ₹{s.amount}
+                      ₹
+                      {s.amount}
                     </td>
 
                     <td>
                       <span
                         className={`status ${s.status}`}
                       >
-                        {s.status}
+                        {
+                          s.status
+                        }
                       </span>
                     </td>
 
                     <td>
-                      {s.nextBillingDate}
+                      {
+                        s.nextBillingDate
+                      }
                     </td>
 
                     <td>
@@ -1098,8 +1276,8 @@ function App() {
             </h2>
 
             <p>
-              Simulate PSP outcomes for MIT
-              recurring payments.
+              Simulate PSP outcomes for
+              MIT recurring payments.
             </p>
           </div>
         </div>
@@ -1110,7 +1288,8 @@ function App() {
 
             <select
               value={
-                selectedSubscription || ""
+                selectedSubscription ||
+                ""
               }
               onChange={(e) =>
                 setSelectedSubscription(
@@ -1125,7 +1304,9 @@ function App() {
                     value={s.id}
                   >
                     {s.id} —{" "}
-                    {s.customer}
+                    {
+                      s.customer
+                    }
                   </option>
                 )
               )}
@@ -1133,12 +1314,14 @@ function App() {
           </label>
 
           <div className="scenario-buttons">
+
+            {/* SUCCESS */}
             <button
               className={
                 selectedOutcome ===
                 "SUCCESS"
-                  ? "primary selected"
-                  : "primary"
+                  ? "scenario selected success"
+                  : "scenario"
               }
               onClick={() =>
                 simulatePayment(
@@ -1149,12 +1332,13 @@ function App() {
               SUCCESS
             </button>
 
+            {/* DECLINE */}
             <button
               className={
                 selectedOutcome ===
                 "DECLINED"
-                  ? "danger selected"
-                  : "danger"
+                  ? "scenario selected decline"
+                  : "scenario"
               }
               onClick={() =>
                 simulatePayment(
@@ -1165,12 +1349,13 @@ function App() {
               DECLINE
             </button>
 
+            {/* UNKNOWN */}
             <button
               className={
                 selectedOutcome ===
                 "UNKNOWN"
-                  ? "warning selected"
-                  : "warning"
+                  ? "scenario selected unknown"
+                  : "scenario"
               }
               onClick={() =>
                 simulatePayment(
@@ -1181,12 +1366,13 @@ function App() {
               TIMEOUT / UNKNOWN
             </button>
 
+            {/* 3DS */}
             <button
               className={
                 selectedOutcome ===
                 "3DS_REQUIRED"
-                  ? "selected"
-                  : ""
+                  ? "scenario selected three-ds"
+                  : "scenario"
               }
               onClick={() =>
                 simulatePayment(
@@ -1197,12 +1383,13 @@ function App() {
               3DS REQUIRED
             </button>
 
+            {/* DUPLICATE */}
             <button
               className={
                 selectedOutcome ===
                 "DUPLICATE"
-                  ? "selected"
-                  : ""
+                  ? "scenario selected duplicate"
+                  : "scenario"
               }
               onClick={() =>
                 simulatePayment(
@@ -1212,6 +1399,7 @@ function App() {
             >
               DUPLICATE REQUEST
             </button>
+
           </div>
         </div>
 
@@ -1243,7 +1431,9 @@ function App() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Timeline</h2>
+            <h2>
+              Timeline
+            </h2>
 
             <p>
               Subscription event and audit
@@ -1260,7 +1450,10 @@ function App() {
             </p>
           ) : (
             events.map(
-              (event, index) => (
+              (
+                event,
+                index
+              ) => (
                 <div
                   className="timeline-item"
                   key={index}
@@ -1269,11 +1462,15 @@ function App() {
 
                   <div>
                     <strong>
-                      {event.text}
+                      {
+                        event.text
+                      }
                     </strong>
 
                     <small>
-                      {event.time}
+                      {
+                        event.time
+                      }
                     </small>
                   </div>
                 </div>
@@ -1293,7 +1490,8 @@ function App() {
     const unknownPayments =
       payments.filter(
         (p) =>
-          p.status === "UNKNOWN"
+          p.status ===
+          "UNKNOWN"
       );
 
     return (
@@ -1305,8 +1503,9 @@ function App() {
             </h2>
 
             <p>
-              Resolve UNKNOWN payments before
-              another charge is attempted.
+              Resolve UNKNOWN payments
+              before another charge is
+              attempted.
             </p>
           </div>
         </div>
@@ -1327,31 +1526,44 @@ function App() {
                   Amount
                 </th>
 
-                <th>Status</th>
+                <th>
+                  Status
+                </th>
 
-                <th>Action</th>
+                <th>
+                  Action
+                </th>
               </tr>
             </thead>
 
             <tbody>
               {payments.map(
                 (p) => (
-                  <tr key={p.id}>
-                    <td>{p.id}</td>
-
+                  <tr
+                    key={p.id}
+                  >
                     <td>
-                      {p.subscriptionId}
+                      {p.id}
                     </td>
 
                     <td>
-                      ₹{p.amount}
+                      {
+                        p.subscriptionId
+                      }
+                    </td>
+
+                    <td>
+                      ₹
+                      {p.amount}
                     </td>
 
                     <td>
                       <span
                         className={`status ${p.status}`}
                       >
-                        {p.status}
+                        {
+                          p.status
+                        }
                       </span>
                     </td>
 
@@ -1382,8 +1594,8 @@ function App() {
         {unknownPayments.length ===
           0 && (
           <div className="success-message">
-            ✓ No UNKNOWN payments require
-            reconciliation.
+            ✓ No UNKNOWN payments
+            require reconciliation.
           </div>
         )}
       </section>
@@ -1404,8 +1616,8 @@ function App() {
             </h2>
 
             <p>
-              Business requirement → feature →
-              implementation.
+              Business requirement →
+              feature → implementation.
             </p>
           </div>
         </div>
@@ -1448,8 +1660,9 @@ function App() {
             </strong>
 
             <span>
-              Future payments are automatically
-              triggered according to the billing
+              Future payments are
+              automatically triggered
+              according to the billing
               schedule.
             </span>
 
@@ -1464,8 +1677,9 @@ function App() {
             </strong>
 
             <span>
-              UNKNOWN payment must be reconciled
-              before another charge.
+              UNKNOWN payment must be
+              reconciled before another
+              charge.
             </span>
 
             <em>
@@ -1479,8 +1693,9 @@ function App() {
             </strong>
 
             <span>
-              Duplicate payment requests must
-              not result in duplicate charges.
+              Duplicate payment requests
+              must not result in duplicate
+              charges.
             </span>
 
             <em>
@@ -1494,8 +1709,8 @@ function App() {
             </strong>
 
             <span>
-              Customer can pause, resume and
-              cancel subscription.
+              Customer can pause, resume
+              and cancel subscription.
             </span>
 
             <em>
@@ -1552,7 +1767,7 @@ function App() {
   }
 
   /* =======================================================
-     RENDER
+     MAIN RENDER
   ======================================================= */
 
   return (
@@ -1575,16 +1790,22 @@ function App() {
             selectedProduct
           }
           frequency={frequency}
-          customerName={customerName}
+          customerName={
+            customerName
+          }
           setCustomerName={
             setCustomerName
           }
-          cardNumber={cardNumber}
+          cardNumber={
+            cardNumber
+          }
           setCardNumber={
             setCardNumber
           }
           consent={consent}
-          setConsent={setConsent}
+          setConsent={
+            setConsent
+          }
           error={error}
           loading={loading}
           startBack={
