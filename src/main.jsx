@@ -28,7 +28,8 @@ const products = [
 
 /* =========================================================
    CUSTOMER CHECKOUT
-   Kept outside App so input focus is preserved
+
+   Kept outside App so input focus is preserved.
 ========================================================= */
 
 function Checkout({
@@ -73,11 +74,14 @@ function Checkout({
 
           <label>
             Your name
+
             <input
               type="text"
               value={customerName}
               onChange={(e) =>
-                setCustomerName(e.target.value)
+                setCustomerName(
+                  e.target.value
+                )
               }
               placeholder="e.g. Ashwin Awachar"
               autoComplete="name"
@@ -86,13 +90,17 @@ function Checkout({
 
           <label>
             Card number
+
             <input
               type="text"
               inputMode="numeric"
               value={cardNumber}
               onChange={(e) =>
                 setCardNumber(
-                  e.target.value.replace(/\D/g, "")
+                  e.target.value.replace(
+                    /\D/g,
+                    ""
+                  )
                 )
               }
               maxLength={19}
@@ -111,7 +119,9 @@ function Checkout({
               type="checkbox"
               checked={consent}
               onChange={(e) =>
-                setConsent(e.target.checked)
+                setConsent(
+                  e.target.checked
+                )
               }
             />
 
@@ -191,6 +201,10 @@ function Checkout({
 ========================================================= */
 
 function App() {
+  /* =======================================================
+     CUSTOMER STORE STATE
+  ======================================================= */
+
   const [mode, setMode] =
     useState("store");
 
@@ -212,6 +226,16 @@ function App() {
   const [enrollment, setEnrollment] =
     useState(null);
 
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  /* =======================================================
+     OPERATIONS STATE
+  ======================================================= */
+
   const [subscriptions, setSubscriptions] =
     useState([]);
 
@@ -228,28 +252,27 @@ function App() {
     useState(null);
 
   /*
-    Scenario button selection.
+    Selected payment scenario.
+
+    Possible values:
+
+    SUCCESS
+    DECLINED
+    UNKNOWN
+    3DS_REQUIRED
+    DUPLICATE
   */
   const [selectedOutcome, setSelectedOutcome] =
     useState(null);
 
   /*
-    IMPORTANT:
-    This stores ONLY the idempotency key of
-    the most recent SUCCESS request.
+    Stores the idempotency key from the
+    most recent SUCCESS payment.
 
-    DUPLICATE REQUEST will reuse this key.
-    It will NOT reuse a DECLINED, UNKNOWN
-    or 3DS_REQUIRED key.
+    DUPLICATE REQUEST reuses this key.
   */
-  const [lastSuccessfulIdempotencyKey, setLastSuccessfulIdempotencyKey] =
+  const [lastIdempotencyKey, setLastIdempotencyKey] =
     useState(null);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
 
   /* =======================================================
      LOAD OPERATIONS DATA
@@ -261,8 +284,12 @@ function App() {
         subscriptionsResponse,
         paymentsResponse,
       ] = await Promise.all([
-        fetch(`${API}/subscriptions`),
-        fetch(`${API}/payments`),
+        fetch(
+          `${API}/subscriptions`
+        ),
+        fetch(
+          `${API}/payments`
+        ),
       ]);
 
       const subscriptionsData =
@@ -281,14 +308,17 @@ function App() {
 
       if (
         !selectedSubscription &&
-        subscriptionsData.length
+        subscriptionsData.length > 0
       ) {
         setSelectedSubscription(
           subscriptionsData[0].id
         );
       }
     } catch (err) {
-      console.error(err);
+      console.error(
+        "Unable to load operations data:",
+        err
+      );
     }
   }
 
@@ -296,22 +326,30 @@ function App() {
     loadOperationsData();
   }, []);
 
+  /* =======================================================
+     LOAD EVENTS
+  ======================================================= */
+
   async function loadEvents(
     subscriptionId
   ) {
     if (!subscriptionId) return;
 
     try {
-      const response = await fetch(
-        `${API}/subscriptions/${subscriptionId}/events`
-      );
+      const response =
+        await fetch(
+          `${API}/subscriptions/${subscriptionId}/events`
+        );
 
       const data =
         await response.json();
 
       setEvents(data);
     } catch (err) {
-      console.error(err);
+      console.error(
+        "Unable to load events:",
+        err
+      );
     }
   }
 
@@ -330,8 +368,8 @@ function App() {
   function openProduct(product) {
     setSelectedProduct(product);
     setFrequency("MONTHLY");
-    setMode("product");
     setError("");
+    setMode("product");
   }
 
   function startCheckout() {
@@ -344,6 +382,13 @@ function App() {
     setMode("product");
   }
 
+  /* =======================================================
+     ENROLL SUBSCRIPTION
+
+     Initial payment = CIT
+     Future payments = MIT
+  ======================================================= */
+
   async function enrollSubscription() {
     setError("");
 
@@ -354,8 +399,14 @@ function App() {
       return;
     }
 
+    const cleanCardNumber =
+      cardNumber.replace(
+        /\D/g,
+        ""
+      );
+
     if (
-      cardNumber.replace(/\D/g, "").length < 12
+      cleanCardNumber.length < 12
     ) {
       setError(
         "Please enter a valid demo card number."
@@ -373,36 +424,38 @@ function App() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${API}/subscriptions/enroll`,
-        {
-          method: "POST",
+      const response =
+        await fetch(
+          `${API}/subscriptions/enroll`,
+          {
+            method: "POST",
 
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
 
-          body: JSON.stringify({
-            customerName,
+            body: JSON.stringify({
+              customerName:
+                customerName.trim(),
 
-            plan:
-              selectedProduct.name,
+              plan:
+                selectedProduct.name,
 
-            amount:
-              selectedProduct.monthly,
+              amount:
+                selectedProduct.monthly,
 
-            currency: "INR",
+              currency: "INR",
 
-            frequency,
+              frequency,
 
-            paymentMethod:
-              cardNumber.replace(/\D/g, ""),
+              paymentMethod:
+                cleanCardNumber,
 
-            consent: true,
-          }),
-        }
-      );
+              consent: true,
+            }),
+          }
+        );
 
       const data =
         await response.json();
@@ -432,14 +485,23 @@ function App() {
 
   /* =======================================================
      PAYMENT SIMULATOR
+
+     IMPORTANT:
+     DUPLICATE REQUEST now works on the FIRST click.
+
+     If there is no previous SUCCESS payment:
+       1. Create original SUCCESS silently.
+       2. Immediately replay same request.
+       3. Backend detects same idempotency key.
+       4. UI shows duplicate response.
+
+     If a SUCCESS already exists:
+       Replay that same request directly.
   ======================================================= */
 
   async function simulatePayment(
     outcome
   ) {
-    /*
-      Always select the clicked scenario.
-    */
     setSelectedOutcome(
       outcome
     );
@@ -448,64 +510,165 @@ function App() {
       null
     );
 
-    let key;
-    let actualOutcome = outcome;
+    try {
+      /* ===================================================
+         DUPLICATE REQUEST
+      =================================================== */
 
-    /*
-      DUPLICATE REQUEST
-      -----------------
-      We deliberately reuse ONLY the last
-      successful request's idempotency key.
+      if (
+        outcome ===
+        "DUPLICATE"
+      ) {
+        let duplicateKey =
+          lastIdempotencyKey;
 
-      This demonstrates:
+        /*
+          FIRST CLICK CASE
 
-      Original SUCCESS
-          ↓
-      Same request sent again
-          ↓
-      Same idempotency key
-          ↓
-      Existing payment returned
-          ↓
-      No duplicate charge
-    */
+          No previous SUCCESS exists.
 
-    if (outcome === "DUPLICATE") {
-      if (!lastSuccessfulIdempotencyKey) {
-        setPaymentResponse({
-          error:
-            "No previous successful payment is available for duplication. Run SUCCESS first, then click DUPLICATE REQUEST.",
-        });
+          Create the original SUCCESS request
+          silently so that we can immediately
+          replay it.
+        */
+
+        if (!duplicateKey) {
+          duplicateKey =
+            `demo-SUCCESS-${Date.now()}`;
+
+          const originalResponse =
+            await fetch(
+              `${API}/payments/simulate`,
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+
+                body: JSON.stringify({
+                  subscriptionId:
+                    selectedSubscription ||
+                    "SUB-10001",
+
+                  outcome:
+                    "SUCCESS",
+
+                  amount: 999,
+
+                  idempotencyKey:
+                    duplicateKey,
+                }),
+              }
+            );
+
+          const originalData =
+            await originalResponse.json();
+
+          if (
+            !originalResponse.ok
+          ) {
+            throw new Error(
+              originalData.error ||
+                "Unable to create original payment"
+            );
+          }
+
+          setLastIdempotencyKey(
+            duplicateKey
+          );
+        }
+
+        /*
+          SECOND REQUEST
+
+          Send exactly the same idempotency
+          key again.
+
+          Backend should return:
+            duplicate: true
+
+          and the original payment ID.
+        */
+
+        const duplicateResponse =
+          await fetch(
+            `${API}/payments/simulate`,
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body: JSON.stringify({
+                subscriptionId:
+                  selectedSubscription ||
+                  "SUB-10001",
+
+                outcome:
+                  "SUCCESS",
+
+                amount: 999,
+
+                idempotencyKey:
+                  duplicateKey,
+              }),
+            }
+          );
+
+        const duplicateData =
+          await duplicateResponse.json();
+
+        if (
+          !duplicateResponse.ok
+        ) {
+          throw new Error(
+            duplicateData.error ||
+              "Duplicate request failed"
+          );
+        }
+
+        setPaymentResponse(
+          duplicateData
+        );
+
+        await loadOperationsData();
+
+        if (
+          selectedSubscription
+        ) {
+          await loadEvents(
+            selectedSubscription
+          );
+        }
 
         return;
       }
 
-      key =
-        lastSuccessfulIdempotencyKey;
+      /* ===================================================
+         NORMAL PAYMENT SCENARIOS
+      =================================================== */
 
-      actualOutcome = "SUCCESS";
-    } else {
-      /*
-        Every normal scenario receives a
-        completely new idempotency key.
-      */
-
-      key =
+      const key =
         `demo-${outcome}-${Date.now()}`;
 
       /*
-        Store the key ONLY when the scenario
-        is SUCCESS.
+        Save SUCCESS key for future
+        DUPLICATE REQUEST testing.
       */
 
-      if (outcome === "SUCCESS") {
-        setLastSuccessfulIdempotencyKey(
+      if (
+        outcome ===
+        "SUCCESS"
+      ) {
+        setLastIdempotencyKey(
           key
         );
       }
-    }
 
-    try {
       const response =
         await fetch(
           `${API}/payments/simulate`,
@@ -522,8 +685,7 @@ function App() {
                 selectedSubscription ||
                 "SUB-10001",
 
-              outcome:
-                actualOutcome,
+              outcome,
 
               amount: 999,
 
@@ -535,6 +697,13 @@ function App() {
 
       const data =
         await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Payment simulation failed"
+        );
+      }
 
       setPaymentResponse(
         data
@@ -576,6 +745,13 @@ function App() {
       const data =
         await response.json();
 
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Reconciliation failed"
+        );
+      }
+
       setPaymentResponse(
         data
       );
@@ -606,12 +782,23 @@ function App() {
     action
   ) {
     try {
-      await fetch(
-        `${API}/subscriptions/${subscriptionId}/${action}`,
-        {
-          method: "POST",
-        }
-      );
+      const response =
+        await fetch(
+          `${API}/subscriptions/${subscriptionId}/${action}`,
+          {
+            method: "POST",
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            `Unable to ${action} subscription`
+        );
+      }
 
       await loadOperationsData();
 
@@ -623,7 +810,9 @@ function App() {
         );
       }
     } catch (err) {
-      console.error(err);
+      console.error(
+        err
+      );
     }
   }
 
@@ -778,8 +967,9 @@ function App() {
   ======================================================= */
 
   function ProductDetails() {
-    if (!selectedProduct)
+    if (!selectedProduct) {
       return null;
+    }
 
     return (
       <section className="customer-page">
@@ -896,8 +1086,9 @@ function App() {
   ======================================================= */
 
   function Confirmation() {
-    if (!enrollment)
+    if (!enrollment) {
       return null;
+    }
 
     const {
       subscription,
@@ -1044,7 +1235,8 @@ function App() {
     const active =
       subscriptions.filter(
         (s) =>
-          s.status === "ACTIVE"
+          s.status ===
+          "ACTIVE"
       ).length;
 
     const retry =
@@ -1057,13 +1249,15 @@ function App() {
     const paused =
       subscriptions.filter(
         (s) =>
-          s.status === "PAUSED"
+          s.status ===
+          "PAUSED"
       ).length;
 
     const unknown =
       payments.filter(
         (p) =>
-          p.status === "UNKNOWN"
+          p.status ===
+          "UNKNOWN"
       ).length;
 
     return (
@@ -1334,6 +1528,7 @@ function App() {
           <div className="scenario-buttons">
 
             {/* SUCCESS */}
+
             <button
               className={
                 selectedOutcome ===
@@ -1350,7 +1545,8 @@ function App() {
               SUCCESS
             </button>
 
-            {/* DECLINE */}
+            {/* DECLINED */}
+
             <button
               className={
                 selectedOutcome ===
@@ -1368,6 +1564,7 @@ function App() {
             </button>
 
             {/* UNKNOWN */}
+
             <button
               className={
                 selectedOutcome ===
@@ -1385,6 +1582,7 @@ function App() {
             </button>
 
             {/* 3DS */}
+
             <button
               className={
                 selectedOutcome ===
@@ -1402,6 +1600,7 @@ function App() {
             </button>
 
             {/* DUPLICATE */}
+
             <button
               className={
                 selectedOutcome ===
@@ -1417,7 +1616,6 @@ function App() {
             >
               DUPLICATE REQUEST
             </button>
-
           </div>
         </div>
 
@@ -1461,7 +1659,8 @@ function App() {
         </div>
 
         <div className="timeline">
-          {events.length === 0 ? (
+          {events.length ===
+          0 ? (
             <p>
               Select a subscription to view
               events.
@@ -1807,9 +2006,7 @@ function App() {
           selectedProduct={
             selectedProduct
           }
-          frequency={
-            frequency
-          }
+          frequency={frequency}
           customerName={
             customerName
           }
@@ -1822,9 +2019,7 @@ function App() {
           setCardNumber={
             setCardNumber
           }
-          consent={
-            consent
-          }
+          consent={consent}
           setConsent={
             setConsent
           }
@@ -1849,6 +2044,10 @@ function App() {
     </div>
   );
 }
+
+/* =========================================================
+   ROOT
+========================================================= */
 
 createRoot(
   document.getElementById("root")
