@@ -10,6 +10,7 @@ function App() {
   const [payments, setPayments] = useState([]);
   const [events, setEvents] = useState([]);
   const [result, setResult] = useState(null);
+  const [lastIdempotencyKey, setLastIdempotencyKey] = useState(null);
 
   async function loadData() {
     const s = await fetch(`${API}/subscriptions`);
@@ -23,7 +24,22 @@ function App() {
     loadData();
   }, []);
 
-  async function simulate(outcome) {
+  async function simulate(outcome, forceDuplicate = false) {
+    const idempotencyKey = forceDuplicate
+      ? lastIdempotencyKey
+      : `SUB-10001-${Date.now()}`;
+
+    if (!idempotencyKey) {
+      setResult({
+        error: "Run a payment scenario first before testing duplicate request."
+      });
+      return;
+    }
+
+    if (!forceDuplicate) {
+      setLastIdempotencyKey(idempotencyKey);
+    }
+
     const response = await fetch(`${API}/payments/simulate`, {
       method: "POST",
       headers: {
@@ -33,7 +49,7 @@ function App() {
         subscriptionId: "SUB-10001",
         outcome: outcome,
         amount: 999,
-        idempotencyKey: "SUB-10001-20261012-01"
+        idempotencyKey: idempotencyKey
       })
     });
 
@@ -94,7 +110,6 @@ function App() {
       </nav>
 
       <main>
-
         {tab === "dashboard" && (
           <>
             <h2>Operations Dashboard</h2>
@@ -162,6 +177,7 @@ function App() {
                       <td>{s.plan}</td>
                       <td>₹{s.amount}</td>
                       <td>{s.nextBillingDate}</td>
+
                       <td>
                         <span className="badge">
                           {s.status}
@@ -198,7 +214,6 @@ function App() {
             <h2>Payment Simulator</h2>
 
             <div className="two">
-
               <div className="card">
                 <h3>Recurring Payment</h3>
 
@@ -243,10 +258,15 @@ function App() {
                 >
                   3DS REQUIRED
                 </button>
+
+                <button
+                  onClick={() => simulate("SUCCESS", true)}
+                >
+                  DUPLICATE REQUEST
+                </button>
               </div>
 
               <div className="card">
-
                 <h3>Payment Response</h3>
 
                 {result ? (
@@ -256,20 +276,37 @@ function App() {
                 ) : (
                   <p>Select a payment outcome.</p>
                 )}
-
               </div>
-
             </div>
 
             <div className="card">
               <h3>BA Rules Demonstrated</h3>
 
               <ul>
-                <li>Idempotency prevents duplicate payment attempts.</li>
-                <li>UNKNOWN is not automatically treated as DECLINED.</li>
-                <li>UNKNOWN requires reconciliation.</li>
-                <li>Successful payment advances the billing cycle.</li>
-                <li>Retryable declines can enter payment retry.</li>
+                <li>
+                  Idempotency prevents duplicate payment attempts.
+                </li>
+
+                <li>
+                  UNKNOWN is not automatically treated as DECLINED.
+                </li>
+
+                <li>
+                  UNKNOWN requires reconciliation.
+                </li>
+
+                <li>
+                  Successful payment advances the billing cycle.
+                </li>
+
+                <li>
+                  Retryable declines can enter payment retry.
+                </li>
+
+                <li>
+                  Duplicate requests using the same idempotency key
+                  are rejected safely.
+                </li>
               </ul>
             </div>
           </>
@@ -280,7 +317,6 @@ function App() {
             <h2>Payment Timeline</h2>
 
             <div className="card">
-
               <button
                 className="primary"
                 onClick={() =>
@@ -291,7 +327,6 @@ function App() {
               </button>
 
               <div className="timeline">
-
                 {events.map((event, index) => (
                   <div key={index}>
                     <b>{event.time}</b>
@@ -299,9 +334,7 @@ function App() {
                     {event.text}
                   </div>
                 ))}
-
               </div>
-
             </div>
           </>
         )}
@@ -316,7 +349,6 @@ function App() {
             </div>
 
             <div className="card">
-
               <table>
                 <thead>
                   <tr>
@@ -329,10 +361,8 @@ function App() {
                 </thead>
 
                 <tbody>
-
                   {payments.map((payment) => (
                     <tr key={payment.id}>
-
                       <td>{payment.id}</td>
 
                       <td>{payment.subscriptionId}</td>
@@ -356,13 +386,10 @@ function App() {
                           </button>
                         )}
                       </td>
-
                     </tr>
                   ))}
-
                 </tbody>
               </table>
-
             </div>
           </>
         )}
@@ -372,9 +399,7 @@ function App() {
             <h2>Requirement Traceability</h2>
 
             <div className="card">
-
               <table>
-
                 <thead>
                   <tr>
                     <th>Business Requirement</th>
@@ -384,7 +409,6 @@ function App() {
                 </thead>
 
                 <tbody>
-
                   <tr>
                     <td>Recurring billing</td>
                     <td>US-22</td>
@@ -420,15 +444,11 @@ function App() {
                     <td>US-54 / US-56</td>
                     <td>Subscription API</td>
                   </tr>
-
                 </tbody>
-
               </table>
-
             </div>
           </>
         )}
-
       </main>
     </>
   );
