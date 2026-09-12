@@ -26,8 +26,176 @@ const products = [
   },
 ];
 
+/* =========================================================
+   CUSTOMER CHECKOUT
+   Stable component - prevents input focus loss
+========================================================= */
+
+function Checkout({
+  selectedProduct,
+  frequency,
+  customerName,
+  setCustomerName,
+  cardNumber,
+  setCardNumber,
+  consent,
+  setConsent,
+  error,
+  loading,
+  startBack,
+  enrollSubscription,
+}) {
+  if (!selectedProduct) return null;
+
+  return (
+    <section className="customer-page">
+      <button
+        className="back-button"
+        onClick={startBack}
+      >
+        ← Back
+      </button>
+
+      <div className="checkout-layout">
+        <div className="checkout-card">
+          <div className="eyebrow">
+            CHECKOUT
+          </div>
+
+          <h1>Start your subscription</h1>
+
+          <p>
+            Your first payment is made now.
+            Future payments will be processed
+            automatically according to your
+            subscription schedule.
+          </p>
+
+          <label>
+            Your name
+
+            <input
+              type="text"
+              value={customerName}
+              onChange={(e) =>
+                setCustomerName(e.target.value)
+              }
+              placeholder="e.g. Ashwin Awachar"
+              autoComplete="name"
+            />
+          </label>
+
+          <label>
+            Card number
+
+            <input
+              type="text"
+              inputMode="numeric"
+              value={cardNumber}
+              onChange={(e) =>
+                setCardNumber(
+                  e.target.value.replace(/\D/g, "")
+                )
+              }
+              maxLength={19}
+              placeholder="4242424242424242"
+              autoComplete="off"
+            />
+          </label>
+
+          <div className="demo-note">
+            Demo only — do not enter a real
+            card number.
+          </div>
+
+          <label className="consent-box">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) =>
+                setConsent(e.target.checked)
+              }
+            />
+
+            <span>
+              I agree to recurring payments for
+              this subscription and authorize
+              future payments according to the
+              selected plan and frequency.
+            </span>
+          </label>
+
+          {error && (
+            <div className="error">
+              {error}
+            </div>
+          )}
+
+          <button
+            className="primary full-width"
+            disabled={loading}
+            onClick={enrollSubscription}
+          >
+            {loading
+              ? "Processing..."
+              : `Pay ₹${selectedProduct.monthly} & Start Subscription`}
+          </button>
+        </div>
+
+        <div className="order-summary">
+          <h3>Order Summary</h3>
+
+          <div className="summary-product">
+            <span>
+              {selectedProduct.name}
+            </span>
+
+            <strong>
+              ₹{selectedProduct.monthly}
+            </strong>
+          </div>
+
+          <div className="summary-line">
+            <span>Frequency</span>
+
+            <span>
+              {frequency === "MONTHLY"
+                ? "Monthly"
+                : "Weekly"}
+            </span>
+          </div>
+
+          <div className="summary-line">
+            <span>Initial payment</span>
+
+            <span>
+              ₹{selectedProduct.monthly}
+            </span>
+          </div>
+
+          <hr />
+
+          <div className="summary-total">
+            <span>Pay now</span>
+
+            <strong>
+              ₹{selectedProduct.monthly}
+            </strong>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   APP
+========================================================= */
+
 function App() {
-  const [mode, setMode] = useState("store");
+  const [mode, setMode] =
+    useState("store");
+
   const [selectedProduct, setSelectedProduct] =
     useState(null);
 
@@ -73,17 +241,28 @@ function App() {
   const [error, setError] =
     useState("");
 
+  /* =======================================================
+     LOAD DATA
+  ======================================================= */
+
   async function loadOperationsData() {
     try {
-      const [s, p] = await Promise.all([
-        fetch(`${API}/subscriptions`),
-        fetch(`${API}/payments`),
-      ]);
+      const [subscriptionsResponse, paymentsResponse] =
+        await Promise.all([
+          fetch(`${API}/subscriptions`),
+          fetch(`${API}/payments`),
+        ]);
 
-      const subscriptionsData = await s.json();
-      const paymentsData = await p.json();
+      const subscriptionsData =
+        await subscriptionsResponse.json();
 
-      setSubscriptions(subscriptionsData);
+      const paymentsData =
+        await paymentsResponse.json();
+
+      setSubscriptions(
+        subscriptionsData
+      );
+
       setPayments(paymentsData);
 
       if (
@@ -125,6 +304,10 @@ function App() {
     }
   }, [selectedSubscription]);
 
+  /* =======================================================
+     CUSTOMER FLOW
+  ======================================================= */
+
   function openProduct(product) {
     setSelectedProduct(product);
     setFrequency("MONTHLY");
@@ -133,8 +316,13 @@ function App() {
   }
 
   function startCheckout() {
-    setMode("checkout");
     setError("");
+    setMode("checkout");
+  }
+
+  function backFromCheckout() {
+    setError("");
+    setMode("product");
   }
 
   async function enrollSubscription() {
@@ -145,8 +333,12 @@ function App() {
       return;
     }
 
-    if (cardNumber.replace(/\D/g, "").length < 12) {
-      setError("Please enter a valid demo card number.");
+    if (
+      cardNumber.replace(/\D/g, "").length < 12
+    ) {
+      setError(
+        "Please enter a valid demo card number."
+      );
       return;
     }
 
@@ -170,10 +362,7 @@ function App() {
           body: JSON.stringify({
             customerName,
             plan: selectedProduct.name,
-            amount:
-              frequency === "MONTHLY"
-                ? selectedProduct.monthly
-                : selectedProduct.monthly,
+            amount: selectedProduct.monthly,
             currency: "INR",
             frequency,
             paymentMethod:
@@ -201,6 +390,10 @@ function App() {
       setLoading(false);
     }
   }
+
+  /* =======================================================
+     PAYMENT SIMULATOR
+  ======================================================= */
 
   async function simulatePayment(outcome) {
     setSelectedOutcome(outcome);
@@ -247,7 +440,9 @@ function App() {
       await loadOperationsData();
 
       if (selectedSubscription) {
-        await loadEvents(selectedSubscription);
+        await loadEvents(
+          selectedSubscription
+        );
       }
     } catch (err) {
       setPaymentResponse({
@@ -255,6 +450,10 @@ function App() {
       });
     }
   }
+
+  /* =======================================================
+     RECONCILIATION
+  ======================================================= */
 
   async function reconcile(paymentId) {
     try {
@@ -272,7 +471,9 @@ function App() {
       await loadOperationsData();
 
       if (selectedSubscription) {
-        await loadEvents(selectedSubscription);
+        await loadEvents(
+          selectedSubscription
+        );
       }
     } catch (err) {
       setPaymentResponse({
@@ -280,6 +481,10 @@ function App() {
       });
     }
   }
+
+  /* =======================================================
+     SUBSCRIPTION MANAGEMENT
+  ======================================================= */
 
   async function subscriptionAction(
     subscriptionId,
@@ -296,12 +501,18 @@ function App() {
       await loadOperationsData();
 
       if (selectedSubscription) {
-        await loadEvents(selectedSubscription);
+        await loadEvents(
+          selectedSubscription
+        );
       }
     } catch (err) {
       console.error(err);
     }
   }
+
+  /* =======================================================
+     STORE HEADER
+  ======================================================= */
 
   function StoreHeader() {
     return (
@@ -320,7 +531,9 @@ function App() {
                 ? "nav-active"
                 : ""
             }
-            onClick={() => setMode("store")}
+            onClick={() =>
+              setMode("store")
+            }
           >
             Store
           </button>
@@ -337,6 +550,10 @@ function App() {
       </header>
     );
   }
+
+  /* =======================================================
+     STORE
+  ======================================================= */
 
   function Store() {
     return (
@@ -364,6 +581,7 @@ function App() {
           <div className="section-title">
             <div>
               <h2>Choose a product</h2>
+
               <p>
                 Subscribe and save compared with
                 one-time purchase.
@@ -385,13 +603,18 @@ function App() {
 
                 <h3>{product.name}</h3>
 
-                <p>{product.description}</p>
+                <p>
+                  {product.description}
+                </p>
 
                 <div className="price-row">
                   <strong>
                     ₹{product.monthly}
                   </strong>
-                  <span>/ month</span>
+
+                  <span>
+                    / month
+                  </span>
                 </div>
 
                 <div className="saving">
@@ -413,6 +636,10 @@ function App() {
       </>
     );
   }
+
+  /* =======================================================
+     PRODUCT DETAILS
+  ======================================================= */
 
   function ProductDetails() {
     if (!selectedProduct) return null;
@@ -438,7 +665,9 @@ function App() {
               SUBSCRIBE & SAVE
             </div>
 
-            <h1>{selectedProduct.name}</h1>
+            <h1>
+              {selectedProduct.name}
+            </h1>
 
             <p>
               {selectedProduct.description}
@@ -446,19 +675,26 @@ function App() {
 
             <div className="detail-price">
               ₹{selectedProduct.monthly}
-              <span>/ month</span>
+
+              <span>
+                / month
+              </span>
             </div>
 
             <div className="saving large">
               {selectedProduct.saving}
             </div>
 
-            <h3>Delivery frequency</h3>
+            <h3>
+              Delivery frequency
+            </h3>
 
             <select
               value={frequency}
               onChange={(e) =>
-                setFrequency(e.target.value)
+                setFrequency(
+                  e.target.value
+                )
               }
             >
               <option value="MONTHLY">
@@ -471,10 +707,21 @@ function App() {
             </select>
 
             <div className="benefits">
-              <div>✓ Automatic recurring delivery</div>
-              <div>✓ Subscribe & Save pricing</div>
-              <div>✓ Manage or cancel anytime</div>
-              <div>✓ Secure payment tokenization</div>
+              <div>
+                ✓ Automatic recurring delivery
+              </div>
+
+              <div>
+                ✓ Subscribe & Save pricing
+              </div>
+
+              <div>
+                ✓ Manage or cancel anytime
+              </div>
+
+              <div>
+                ✓ Secure payment tokenization
+              </div>
             </div>
 
             <button
@@ -489,142 +736,9 @@ function App() {
     );
   }
 
-  function Checkout() {
-    if (!selectedProduct) return null;
-
-    return (
-      <section className="customer-page">
-        <button
-          className="back-button"
-          onClick={() => setMode("product")}
-        >
-          ← Back
-        </button>
-
-        <div className="checkout-layout">
-          <div className="checkout-card">
-            <div className="eyebrow">
-              CHECKOUT
-            </div>
-
-            <h1>Start your subscription</h1>
-
-            <p>
-              Your first payment is made now.
-              Future payments will be processed
-              automatically according to your
-              subscription schedule.
-            </p>
-
-            <label>
-              Your name
-              <input
-                value={customerName}
-                onChange={(e) =>
-                  setCustomerName(e.target.value)
-                }
-                placeholder="e.g. Ashwin Awachar"
-              />
-            </label>
-
-            <label>
-              Card number
-              <input
-                value={cardNumber}
-                onChange={(e) =>
-                  setCardNumber(
-                    e.target.value.replace(
-                      /\D/g,
-                      ""
-                    )
-                  )
-                }
-                maxLength={19}
-                placeholder="4242424242424242"
-              />
-            </label>
-
-            <div className="demo-note">
-              Demo only — do not enter a real
-              card number.
-            </div>
-
-            <label className="consent-box">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={(e) =>
-                  setConsent(e.target.checked)
-                }
-              />
-
-              <span>
-                I agree to recurring payments for
-                this subscription and authorize
-                future payments according to the
-                selected plan and frequency.
-              </span>
-            </label>
-
-            {error && (
-              <div className="error">
-                {error}
-              </div>
-            )}
-
-            <button
-              className="primary full-width"
-              disabled={loading}
-              onClick={enrollSubscription}
-            >
-              {loading
-                ? "Processing..."
-                : `Pay ₹${selectedProduct.monthly} & Start Subscription`}
-            </button>
-          </div>
-
-          <div className="order-summary">
-            <h3>Order Summary</h3>
-
-            <div className="summary-product">
-              <span>
-                {selectedProduct.name}
-              </span>
-
-              <strong>
-                ₹{selectedProduct.monthly}
-              </strong>
-            </div>
-
-            <div className="summary-line">
-              <span>Frequency</span>
-              <span>
-                {frequency === "MONTHLY"
-                  ? "Monthly"
-                  : "Weekly"}
-              </span>
-            </div>
-
-            <div className="summary-line">
-              <span>Initial payment</span>
-              <span>
-                ₹{selectedProduct.monthly}
-              </span>
-            </div>
-
-            <hr />
-
-            <div className="summary-total">
-              <span>Pay now</span>
-              <strong>
-                ₹{selectedProduct.monthly}
-              </strong>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  /* =======================================================
+     CONFIRMATION
+  ======================================================= */
 
   function Confirmation() {
     if (!enrollment) return null;
@@ -656,7 +770,10 @@ function App() {
 
           <div className="confirmation-grid">
             <div>
-              <span>Subscription ID</span>
+              <span>
+                Subscription ID
+              </span>
+
               <strong>
                 {subscription.id}
               </strong>
@@ -664,34 +781,47 @@ function App() {
 
             <div>
               <span>Plan</span>
+
               <strong>
                 {subscription.plan}
               </strong>
             </div>
 
             <div>
-              <span>Recurring amount</span>
+              <span>
+                Recurring amount
+              </span>
+
               <strong>
                 ₹{subscription.amount}
               </strong>
             </div>
 
             <div>
-              <span>Next payment</span>
+              <span>
+                Next payment
+              </span>
+
               <strong>
                 {subscription.nextBillingDate}
               </strong>
             </div>
 
             <div>
-              <span>Payment method</span>
+              <span>
+                Payment method
+              </span>
+
               <strong>
                 {subscription.paymentMethod}
               </strong>
             </div>
 
             <div>
-              <span>Initial payment</span>
+              <span>
+                Initial payment
+              </span>
+
               <strong>
                 {payment.status}
               </strong>
@@ -704,12 +834,18 @@ function App() {
             </strong>
 
             <p>
-              Your initial payment was a
-              <b> CIT (Customer Initiated
-              Transaction)</b>. Future scheduled
-              subscription payments will be
-              <b> MIT (Merchant Initiated
-              Transactions)</b>.
+              Your initial payment was a{" "}
+              <b>
+                CIT (Customer Initiated
+                Transaction)
+              </b>
+              . Future scheduled subscription
+              payments will be{" "}
+              <b>
+                MIT (Merchant Initiated
+                Transactions)
+              </b>
+              .
             </p>
           </div>
 
@@ -727,6 +863,10 @@ function App() {
     );
   }
 
+  /* =======================================================
+     DASHBOARD
+  ======================================================= */
+
   function Dashboard() {
     const active =
       subscriptions.filter(
@@ -735,24 +875,31 @@ function App() {
 
     const retry =
       subscriptions.filter(
-        (s) => s.status === "PAYMENT_RETRY"
+        (s) =>
+          s.status ===
+          "PAYMENT_RETRY"
       ).length;
 
     const paused =
       subscriptions.filter(
-        (s) => s.status === "PAUSED"
+        (s) =>
+          s.status === "PAUSED"
       ).length;
 
     const unknown =
       payments.filter(
-        (p) => p.status === "UNKNOWN"
+        (p) =>
+          p.status === "UNKNOWN"
       ).length;
 
     return (
       <>
         <div className="page-header">
           <div>
-            <h1>Operations Dashboard</h1>
+            <h1>
+              Operations Dashboard
+            </h1>
+
             <p>
               Payment and subscription
               operations overview.
@@ -762,7 +909,10 @@ function App() {
 
         <div className="metrics">
           <div className="metric">
-            <span>Total subscriptions</span>
+            <span>
+              Total subscriptions
+            </span>
+
             <strong>
               {subscriptions.length}
             </strong>
@@ -770,34 +920,57 @@ function App() {
 
           <div className="metric">
             <span>Active</span>
-            <strong>{active}</strong>
+
+            <strong>
+              {active}
+            </strong>
           </div>
 
           <div className="metric">
-            <span>Payment retry</span>
-            <strong>{retry}</strong>
+            <span>
+              Payment retry
+            </span>
+
+            <strong>
+              {retry}
+            </strong>
           </div>
 
           <div className="metric">
             <span>Paused</span>
-            <strong>{paused}</strong>
+
+            <strong>
+              {paused}
+            </strong>
           </div>
 
           <div className="metric">
-            <span>Unknown payments</span>
-            <strong>{unknown}</strong>
+            <span>
+              Unknown payments
+            </span>
+
+            <strong>
+              {unknown}
+            </strong>
           </div>
         </div>
       </>
     );
   }
 
+  /* =======================================================
+     SUBSCRIPTION MANAGEMENT
+  ======================================================= */
+
   function SubscriptionManagement() {
     return (
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Subscriptions</h2>
+            <h2>
+              Subscriptions
+            </h2>
+
             <p>
               Manage subscription lifecycle.
             </p>
@@ -809,86 +982,111 @@ function App() {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Customer</th>
+                <th>
+                  Customer
+                </th>
                 <th>Plan</th>
-                <th>Amount</th>
+                <th>
+                  Amount
+                </th>
                 <th>Status</th>
-                <th>Next Billing</th>
-                <th>Actions</th>
+                <th>
+                  Next Billing
+                </th>
+                <th>
+                  Actions
+                </th>
               </tr>
             </thead>
 
             <tbody>
-              {subscriptions.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.id}</td>
-                  <td>{s.customer}</td>
-                  <td>{s.plan}</td>
-                  <td>
-                    ₹{s.amount}
-                  </td>
-                  <td>
-                    <span
-                      className={`status ${s.status}`}
-                    >
-                      {s.status}
-                    </span>
-                  </td>
-                  <td>
-                    {s.nextBillingDate}
-                  </td>
+              {subscriptions.map(
+                (s) => (
+                  <tr key={s.id}>
+                    <td>{s.id}</td>
 
-                  <td>
-                    <div className="action-buttons">
-                      {s.status === "ACTIVE" && (
-                        <button
-                          onClick={() =>
-                            subscriptionAction(
-                              s.id,
-                              "pause"
-                            )
-                          }
-                        >
-                          Pause
-                        </button>
-                      )}
+                    <td>
+                      {s.customer}
+                    </td>
 
-                      {s.status === "PAUSED" && (
-                        <button
-                          onClick={() =>
-                            subscriptionAction(
-                              s.id,
-                              "resume"
-                            )
-                          }
-                        >
-                          Resume
-                        </button>
-                      )}
+                    <td>
+                      {s.plan}
+                    </td>
 
-                      {s.status !==
-                        "CANCELLED" && (
-                        <button
-                          onClick={() =>
-                            subscriptionAction(
-                              s.id,
-                              "cancel"
-                            )
-                          }
-                        >
-                          Cancel
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td>
+                      ₹{s.amount}
+                    </td>
+
+                    <td>
+                      <span
+                        className={`status ${s.status}`}
+                      >
+                        {s.status}
+                      </span>
+                    </td>
+
+                    <td>
+                      {s.nextBillingDate}
+                    </td>
+
+                    <td>
+                      <div className="action-buttons">
+                        {s.status ===
+                          "ACTIVE" && (
+                          <button
+                            onClick={() =>
+                              subscriptionAction(
+                                s.id,
+                                "pause"
+                              )
+                            }
+                          >
+                            Pause
+                          </button>
+                        )}
+
+                        {s.status ===
+                          "PAUSED" && (
+                          <button
+                            onClick={() =>
+                              subscriptionAction(
+                                s.id,
+                                "resume"
+                              )
+                            }
+                          >
+                            Resume
+                          </button>
+                        )}
+
+                        {s.status !==
+                          "CANCELLED" && (
+                          <button
+                            onClick={() =>
+                              subscriptionAction(
+                                s.id,
+                                "cancel"
+                              )
+                            }
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </div>
       </section>
     );
   }
+
+  /* =======================================================
+     PAYMENT SIMULATOR
+  ======================================================= */
 
   function PaymentSimulator() {
     return (
@@ -909,6 +1107,7 @@ function App() {
         <div className="simulator">
           <label>
             Subscription
+
             <select
               value={
                 selectedSubscription || ""
@@ -919,14 +1118,17 @@ function App() {
                 )
               }
             >
-              {subscriptions.map((s) => (
-                <option
-                  key={s.id}
-                  value={s.id}
-                >
-                  {s.id} — {s.customer}
-                </option>
-              ))}
+              {subscriptions.map(
+                (s) => (
+                  <option
+                    key={s.id}
+                    value={s.id}
+                  >
+                    {s.id} —{" "}
+                    {s.customer}
+                  </option>
+                )
+              )}
             </select>
           </label>
 
@@ -939,7 +1141,9 @@ function App() {
                   : "primary"
               }
               onClick={() =>
-                simulatePayment("SUCCESS")
+                simulatePayment(
+                  "SUCCESS"
+                )
               }
             >
               SUCCESS
@@ -953,7 +1157,9 @@ function App() {
                   : "danger"
               }
               onClick={() =>
-                simulatePayment("DECLINED")
+                simulatePayment(
+                  "DECLINED"
+                )
               }
             >
               DECLINE
@@ -967,7 +1173,9 @@ function App() {
                   : "warning"
               }
               onClick={() =>
-                simulatePayment("UNKNOWN")
+                simulatePayment(
+                  "UNKNOWN"
+                )
               }
             >
               TIMEOUT / UNKNOWN
@@ -997,7 +1205,9 @@ function App() {
                   : ""
               }
               onClick={() =>
-                simulatePayment("DUPLICATE")
+                simulatePayment(
+                  "DUPLICATE"
+                )
               }
             >
               DUPLICATE REQUEST
@@ -1024,14 +1234,20 @@ function App() {
     );
   }
 
+  /* =======================================================
+     TIMELINE
+  ======================================================= */
+
   function Timeline() {
     return (
       <section className="panel">
         <div className="panel-header">
           <div>
             <h2>Timeline</h2>
+
             <p>
-              Subscription event and audit trail.
+              Subscription event and audit
+              trail.
             </p>
           </div>
         </div>
@@ -1043,41 +1259,51 @@ function App() {
               events.
             </p>
           ) : (
-            events.map((event, index) => (
-              <div
-                className="timeline-item"
-                key={index}
-              >
-                <div className="timeline-dot" />
+            events.map(
+              (event, index) => (
+                <div
+                  className="timeline-item"
+                  key={index}
+                >
+                  <div className="timeline-dot" />
 
-                <div>
-                  <strong>
-                    {event.text}
-                  </strong>
+                  <div>
+                    <strong>
+                      {event.text}
+                    </strong>
 
-                  <small>
-                    {event.time}
-                  </small>
+                    <small>
+                      {event.time}
+                    </small>
+                  </div>
                 </div>
-              </div>
-            ))
+              )
+            )
           )}
         </div>
       </section>
     );
   }
 
+  /* =======================================================
+     RECONCILIATION
+  ======================================================= */
+
   function Reconciliation() {
     const unknownPayments =
       payments.filter(
-        (p) => p.status === "UNKNOWN"
+        (p) =>
+          p.status === "UNKNOWN"
       );
 
     return (
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Reconciliation</h2>
+            <h2>
+              Reconciliation
+            </h2>
+
             <p>
               Resolve UNKNOWN payments before
               another charge is attempted.
@@ -1089,50 +1315,72 @@ function App() {
           <table>
             <thead>
               <tr>
-                <th>Payment ID</th>
-                <th>Subscription</th>
-                <th>Amount</th>
+                <th>
+                  Payment ID
+                </th>
+
+                <th>
+                  Subscription
+                </th>
+
+                <th>
+                  Amount
+                </th>
+
                 <th>Status</th>
+
                 <th>Action</th>
               </tr>
             </thead>
 
             <tbody>
-              {payments.map((p) => (
-                <tr key={p.id}>
-                  <td>{p.id}</td>
-                  <td>
-                    {p.subscriptionId}
-                  </td>
-                  <td>₹{p.amount}</td>
-                  <td>
-                    <span
-                      className={`status ${p.status}`}
-                    >
-                      {p.status}
-                    </span>
-                  </td>
-                  <td>
-                    {p.status === "UNKNOWN" ? (
-                      <button
-                        className="primary"
-                        onClick={() =>
-                          reconcile(p.id)
-                        }
+              {payments.map(
+                (p) => (
+                  <tr key={p.id}>
+                    <td>{p.id}</td>
+
+                    <td>
+                      {p.subscriptionId}
+                    </td>
+
+                    <td>
+                      ₹{p.amount}
+                    </td>
+
+                    <td>
+                      <span
+                        className={`status ${p.status}`}
                       >
-                        Reconcile
-                      </button>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                </tr>
-              ))}
+                        {p.status}
+                      </span>
+                    </td>
+
+                    <td>
+                      {p.status ===
+                      "UNKNOWN" ? (
+                        <button
+                          className="primary"
+                          onClick={() =>
+                            reconcile(
+                              p.id
+                            )
+                          }
+                        >
+                          Reconcile
+                        </button>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </div>
 
-        {unknownPayments.length === 0 && (
+        {unknownPayments.length ===
+          0 && (
           <div className="success-message">
             ✓ No UNKNOWN payments require
             reconciliation.
@@ -1141,6 +1389,10 @@ function App() {
       </section>
     );
   }
+
+  /* =======================================================
+     TRACEABILITY
+  ======================================================= */
 
   function Traceability() {
     return (
@@ -1255,6 +1507,10 @@ function App() {
     );
   }
 
+  /* =======================================================
+     OPERATIONS CONSOLE
+  ======================================================= */
+
   function OperationsConsole() {
     return (
       <div className="ops-shell">
@@ -1270,7 +1526,9 @@ function App() {
           </div>
 
           <button
-            onClick={() => setMode("store")}
+            onClick={() =>
+              setMode("store")
+            }
           >
             ← Customer Store
           </button>
@@ -1293,23 +1551,58 @@ function App() {
     );
   }
 
+  /* =======================================================
+     RENDER
+  ======================================================= */
+
   return (
     <div>
-      {mode !== "ops" && <StoreHeader />}
+      {mode !== "ops" && (
+        <StoreHeader />
+      )}
 
-      {mode === "store" && <Store />}
+      {mode === "store" && (
+        <Store />
+      )}
 
-      {mode === "product" &&
-        <ProductDetails />}
+      {mode === "product" && (
+        <ProductDetails />
+      )}
 
-      {mode === "checkout" &&
-        <Checkout />}
+      {mode === "checkout" && (
+        <Checkout
+          selectedProduct={
+            selectedProduct
+          }
+          frequency={frequency}
+          customerName={customerName}
+          setCustomerName={
+            setCustomerName
+          }
+          cardNumber={cardNumber}
+          setCardNumber={
+            setCardNumber
+          }
+          consent={consent}
+          setConsent={setConsent}
+          error={error}
+          loading={loading}
+          startBack={
+            backFromCheckout
+          }
+          enrollSubscription={
+            enrollSubscription
+          }
+        />
+      )}
 
-      {mode === "confirmation" &&
-        <Confirmation />}
+      {mode === "confirmation" && (
+        <Confirmation />
+      )}
 
-      {mode === "ops" &&
-        <OperationsConsole />}
+      {mode === "ops" && (
+        <OperationsConsole />
+      )}
     </div>
   );
 }
