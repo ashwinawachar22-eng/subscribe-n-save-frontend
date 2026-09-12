@@ -1,13 +1,19 @@
 /* =========================================================
-   GLOBAL
+   GLOBAL RESET
 ========================================================= */
 
 * {
   box-sizing: border-box;
 }
 
-body {
+html,
+body,
+#root {
   margin: 0;
+  min-height: 100%;
+}
+
+body {
   font-family:
     Inter,
     -apple-system,
@@ -31,28 +37,64 @@ button {
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.65;
+  opacity: 0.6;
 }
 
 /* =========================================================
-   STORE HEADER
+   SHARED BUTTONS
 ========================================================= */
+
+button.primary {
+  background: #172033;
+  color: #ffffff;
+  border: 1px solid #172033;
+  border-radius: 9px;
+  padding: 11px 18px;
+  font-weight: 700;
+}
+
+button.primary:hover {
+  background: #30394a;
+}
+
+button.secondary {
+  background: #ffffff;
+  color: #172033;
+  border: 1px solid #ccd2dc;
+  border-radius: 9px;
+  padding: 10px 16px;
+  font-weight: 700;
+}
+
+button.secondary:hover {
+  background: #f1f3f6;
+}
+
+/* =========================================================
+   CUSTOMER STORE
+========================================================= */
+
+.customer-page {
+  min-height: calc(100vh - 82px);
+  background: #f6f7fb;
+}
 
 .store-header {
   background: #172033;
-  color: white;
-  padding: 22px 48px;
+  color: #ffffff;
+  padding: 18px 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 30px;
+  gap: 25px;
 }
 
+.store-header .brand,
 .brand {
   font-size: 24px;
   font-weight: 800;
+  letter-spacing: -0.6px;
   cursor: pointer;
-  letter-spacing: -0.5px;
 }
 
 .store-header nav {
@@ -63,8 +105,8 @@ button:disabled {
 
 .store-header nav button {
   background: transparent;
-  color: white;
-  border: 1px solid rgba(255,255,255,0.35);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 9px;
   padding: 10px 16px;
   margin: 0;
@@ -72,61 +114,56 @@ button:disabled {
 }
 
 .store-header nav button:hover {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .store-header nav button.nav-active {
-  background: white;
+  background: #ffffff;
   color: #172033;
 }
 
 /* =========================================================
-   CUSTOMER PAGES
+   STORE HERO
 ========================================================= */
-
-.customer-page {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 48px 28px 70px;
-}
 
 .hero {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 70px 28px 45px;
+  padding: 65px 28px 45px;
 }
 
 .eyebrow {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 1.5px;
   color: #667085;
-  margin-bottom: 14px;
+  margin-bottom: 15px;
 }
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(42px, 6vw, 72px);
+  font-size: clamp(44px, 6vw, 72px);
   line-height: 1.03;
   letter-spacing: -2.5px;
+  color: #172033;
 }
 
 .hero p {
   margin: 25px 0 0;
+  max-width: 720px;
   font-size: 20px;
+  line-height: 1.55;
   color: #596273;
-  max-width: 700px;
-  line-height: 1.6;
 }
 
 /* =========================================================
-   STORE PRODUCT SECTION
+   STORE SECTION
 ========================================================= */
 
 .section {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 20px 28px 70px;
+  padding: 15px 28px 70px;
 }
 
 .section-title {
@@ -136,65 +173,70 @@ button:disabled {
 .section-title h2 {
   margin: 0;
   font-size: 30px;
-  letter-spacing: -0.7px;
+  letter-spacing: -0.8px;
 }
 
 .section-title p {
   margin: 8px 0 0;
   color: #667085;
-  font-size: 16px;
+  font-size: 17px;
 }
+
+/* =========================================================
+   PRODUCT GRID
+========================================================= */
 
 .product-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
+  gap: 24px;
 }
 
 .product-card {
-  background: white;
-  border: 1px solid #e2e6ee;
+  background: #ffffff;
+  border: 1px solid #e1e5ec;
   border-radius: 16px;
   padding: 28px;
-  min-height: 300px;
-  box-shadow: 0 8px 25px rgba(23, 32, 51, 0.04);
+  min-height: 330px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 8px 25px rgba(23, 32, 51, 0.04);
 }
 
 .product-card:hover {
-  box-shadow: 0 12px 30px rgba(23, 32, 51, 0.08);
+  box-shadow: 0 12px 32px rgba(23, 32, 51, 0.08);
 }
 
 .product-icon {
-  width: 54px;
-  height: 54px;
-  border-radius: 14px;
-  background: #f1f3f7;
+  width: 55px;
+  height: 55px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 27px;
+  background: #f1f3f7;
+  border-radius: 14px;
+  font-size: 28px;
   margin-bottom: 22px;
 }
 
 .product-card h3 {
   margin: 0 0 10px;
-  font-size: 23px;
+  font-size: 24px;
+  letter-spacing: -0.4px;
 }
 
 .product-card p {
+  margin: 0 0 20px;
   color: #667085;
   line-height: 1.55;
-  min-height: 50px;
-  margin: 0 0 20px;
+  font-size: 16px;
 }
 
 .price-row {
+  margin-top: auto;
   display: flex;
   align-items: baseline;
-  gap: 4px;
-  margin-top: auto;
+  gap: 5px;
 }
 
 .price-row strong {
@@ -206,10 +248,10 @@ button:disabled {
 }
 
 .saving {
+  margin: 7px 0 18px;
   color: #277044;
   font-size: 14px;
   font-weight: 700;
-  margin: 6px 0 18px;
 }
 
 .saving.large {
@@ -217,61 +259,27 @@ button:disabled {
 }
 
 /* =========================================================
-   BUTTONS
-========================================================= */
-
-.primary {
-  background: #172033;
-  color: white;
-  border: 1px solid #172033;
-  border-radius: 9px;
-  padding: 11px 18px;
-  font-weight: 700;
-}
-
-.primary:hover {
-  background: #30394a;
-}
-
-.full-width {
-  width: 100%;
-}
-
-.back-button {
-  background: transparent;
-  border: 0;
-  color: #596273;
-  padding: 5px 0;
-  margin: 0 0 28px;
-  font-weight: 700;
-}
-
-.back-button:hover {
-  color: #172033;
-}
-
-/* =========================================================
-   PRODUCT DETAILS
+   PRODUCT DETAIL
 ========================================================= */
 
 .product-detail {
-  background: white;
-  border: 1px solid #e2e6ee;
-  border-radius: 18px;
+  max-width: 980px;
+  margin: 25px auto;
   padding: 42px;
+  background: #ffffff;
+  border: 1px solid #e1e5ec;
+  border-radius: 18px;
   display: grid;
-  grid-template-columns: 160px 1fr;
+  grid-template-columns: 150px 1fr;
   gap: 45px;
-  max-width: 950px;
-  margin: 20px auto;
   box-shadow: 0 8px 30px rgba(23, 32, 51, 0.05);
 }
 
 .product-detail-icon {
   width: 140px;
   height: 140px;
-  border-radius: 24px;
   background: #f1f3f7;
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -281,6 +289,7 @@ button:disabled {
 .product-detail h1 {
   margin: 0 0 12px;
   font-size: 40px;
+  letter-spacing: -1px;
 }
 
 .product-detail p {
@@ -288,10 +297,19 @@ button:disabled {
   line-height: 1.6;
 }
 
+.product-detail select {
+  width: 220px;
+  padding: 11px 13px;
+  margin: 8px 0 20px;
+  border: 1px solid #ccd2dc;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
 .detail-price {
+  margin-top: 18px;
   font-size: 36px;
   font-weight: 800;
-  margin-top: 22px;
 }
 
 .detail-price span {
@@ -300,20 +318,28 @@ button:disabled {
   font-weight: 500;
 }
 
-.product-detail select {
-  width: 220px;
-  padding: 11px 13px;
-  border: 1px solid #ccd2dc;
-  border-radius: 8px;
-  background: white;
-  margin-bottom: 20px;
-}
-
 .benefits {
   display: grid;
   gap: 10px;
-  margin: 18px 0 25px;
+  margin: 20px 0 25px;
   color: #394150;
+}
+
+/* =========================================================
+   BACK BUTTON
+========================================================= */
+
+.back-button {
+  background: transparent;
+  border: 0;
+  color: #596273;
+  padding: 5px 0;
+  margin: 0 0 25px;
+  font-weight: 700;
+}
+
+.back-button:hover {
+  color: #172033;
 }
 
 /* =========================================================
@@ -321,17 +347,17 @@ button:disabled {
 ========================================================= */
 
 .checkout-layout {
+  max-width: 1050px;
+  margin: 20px auto;
   display: grid;
   grid-template-columns: 1.35fr 0.85fr;
   gap: 25px;
-  max-width: 1050px;
-  margin: 20px auto;
 }
 
 .checkout-card,
 .order-summary {
-  background: white;
-  border: 1px solid #e2e6ee;
+  background: #ffffff;
+  border: 1px solid #e1e5ec;
   border-radius: 16px;
   padding: 30px;
   box-shadow: 0 8px 25px rgba(23, 32, 51, 0.04);
@@ -350,8 +376,8 @@ button:disabled {
 
 .checkout-card label {
   display: block;
-  font-weight: 700;
   margin-bottom: 18px;
+  font-weight: 700;
 }
 
 .checkout-card input[type="text"] {
@@ -361,6 +387,8 @@ button:disabled {
   padding: 12px 13px;
   border: 1px solid #ccd2dc;
   border-radius: 8px;
+  background: #ffffff;
+  color: #172033;
   outline: none;
 }
 
@@ -373,7 +401,7 @@ button:disabled {
   background: #fff7e6;
   border: 1px solid #f0dfb4;
   color: #7b5b16;
-  padding: 10px 12px;
+  padding: 11px 13px;
   border-radius: 8px;
   font-size: 13px;
   margin-bottom: 18px;
@@ -381,8 +409,8 @@ button:disabled {
 
 .consent-box {
   display: flex !important;
-  gap: 10px;
   align-items: flex-start;
+  gap: 10px;
   font-weight: 500 !important;
   line-height: 1.5;
 }
@@ -391,8 +419,12 @@ button:disabled {
   margin-top: 4px;
 }
 
+/* =========================================================
+   ORDER SUMMARY
+========================================================= */
+
 .order-summary h3 {
-  margin-top: 0;
+  margin: 0 0 15px;
   font-size: 20px;
 }
 
@@ -443,10 +475,10 @@ button:disabled {
 .confirmation-card {
   max-width: 850px;
   margin: 30px auto;
-  background: white;
-  border: 1px solid #e2e6ee;
-  border-radius: 18px;
   padding: 42px;
+  background: #ffffff;
+  border: 1px solid #e1e5ec;
+  border-radius: 18px;
   text-align: center;
   box-shadow: 0 8px 30px rgba(23, 32, 51, 0.05);
 }
@@ -454,13 +486,13 @@ button:disabled {
 .success-icon {
   width: 58px;
   height: 58px;
+  margin: 0 auto 18px;
   border-radius: 50%;
-  background: #e7f6ec;
-  color: #277044;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 18px;
+  background: #e7f6ec;
+  color: #277044;
   font-size: 28px;
   font-weight: 800;
 }
@@ -487,15 +519,15 @@ button:disabled {
 }
 
 .confirmation-grid > div {
-  background: white;
+  background: #ffffff;
   padding: 16px;
 }
 
 .confirmation-grid span {
   display: block;
+  margin-bottom: 5px;
   color: #667085;
   font-size: 12px;
-  margin-bottom: 5px;
 }
 
 .confirmation-grid strong {
@@ -504,15 +536,15 @@ button:disabled {
 }
 
 .payment-explanation {
-  text-align: left;
-  background: #eef5ff;
-  padding: 16px;
-  border-radius: 9px;
   margin-bottom: 24px;
+  padding: 16px;
+  background: #eef5ff;
+  border-radius: 9px;
+  text-align: left;
 }
 
 .payment-explanation p {
-  margin-bottom: 0;
+  margin: 0;
   color: #4d596b;
   line-height: 1.55;
 }
@@ -521,66 +553,135 @@ button:disabled {
    OPERATIONS CONSOLE
 ========================================================= */
 
-main {
+.ops-shell {
+  min-height: 100vh;
+  background: #f6f7fb;
+}
+
+.ops-topbar {
+  min-height: 72px;
+  padding: 16px 42px;
+  background: #172033;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 25px;
+  border-bottom: 1px solid #273149;
+}
+
+.ops-topbar > div {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.ops-topbar strong {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.ops-topbar span {
+  font-size: 15px;
+  color: #c8cfdb;
+  font-weight: 500;
+}
+
+.ops-topbar button {
+  background: #ffffff;
+  color: #172033;
+  border: 1px solid #d4dae4;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ops-topbar button:hover {
+  background: #eef1f5;
+}
+
+.ops-content {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 35px 28px 60px;
+  padding: 35px 28px 70px;
 }
+
+/* =========================================================
+   OPERATIONS PAGE HEADER
+========================================================= */
 
 .page-header {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 25px;
+  justify-content: space-between;
+  margin-bottom: 28px;
 }
 
 .page-header h1 {
-  margin: 0 0 6px;
-  font-size: 32px;
+  margin: 0 0 7px;
+  font-size: 42px;
+  letter-spacing: -1.5px;
 }
 
 .page-header p {
   margin: 0;
   color: #667085;
+  font-size: 18px;
 }
+
+/* =========================================================
+   METRICS
+========================================================= */
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 25px;
 }
 
 .metric {
-  background: white;
-  border: 1px solid #e2e6ee;
-  border-radius: 12px;
-  padding: 18px;
+  min-height: 125px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e1e5ec;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(23, 32, 51, 0.03);
 }
 
 .metric span {
   display: block;
   color: #667085;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .metric strong {
   display: block;
-  font-size: 28px;
-  margin-top: 8px;
+  margin-top: 12px;
+  font-size: 34px;
 }
 
+/* =========================================================
+   PANELS
+========================================================= */
+
 .panel {
-  background: white;
-  border: 1px solid #e2e6ee;
-  border-radius: 13px;
-  padding: 22px;
   margin-bottom: 20px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e1e5ec;
+  border-radius: 13px;
+  box-shadow: 0 4px 16px rgba(23, 32, 51, 0.03);
 }
 
 .panel-header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 20px;
   margin-bottom: 18px;
 }
 
@@ -596,10 +697,11 @@ main {
 }
 
 /* =========================================================
-   TABLE
+   TABLES
 ========================================================= */
 
 .table-wrap {
+  width: 100%;
   overflow-x: auto;
 }
 
@@ -609,17 +711,17 @@ table {
 }
 
 th {
-  color: #667085;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
   background: #f8f9fb;
+  color: #667085;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 th,
 td {
-  text-align: left;
   padding: 12px;
+  text-align: left;
   border-bottom: 1px solid #edf0f4;
   white-space: nowrap;
 }
@@ -629,7 +731,7 @@ tbody tr:hover {
 }
 
 /* =========================================================
-   STATUS
+   STATUS BADGES
 ========================================================= */
 
 .status {
@@ -673,18 +775,19 @@ tbody tr:hover {
 
 .action-buttons {
   display: flex;
+  align-items: center;
   gap: 5px;
 }
 
 .action-buttons button {
   padding: 7px 10px;
-  border: 1px solid #ccd2dc;
-  background: white;
-  border-radius: 7px;
+  margin: 0;
+  background: #ffffff;
   color: #30394a;
+  border: 1px solid #ccd2dc;
+  border-radius: 7px;
   font-size: 12px;
   font-weight: 700;
-  margin: 0;
 }
 
 .action-buttons button:hover {
@@ -697,8 +800,8 @@ tbody tr:hover {
 
 .simulator label {
   display: block;
-  font-weight: 700;
   margin-bottom: 12px;
+  font-weight: 700;
 }
 
 .simulator select {
@@ -707,9 +810,9 @@ tbody tr:hover {
   max-width: 500px;
   margin-top: 7px;
   padding: 10px 12px;
+  background: #ffffff;
   border: 1px solid #ccd2dc;
   border-radius: 8px;
-  background: white;
 }
 
 /* =========================================================
@@ -724,14 +827,14 @@ tbody tr:hover {
 }
 
 .scenario-buttons .scenario {
-  border: 1px solid #d8dde5;
+  margin: 0;
+  padding: 10px 13px;
   background: #ffffff;
   color: #30394a;
-  padding: 10px 13px;
+  border: 1px solid #d8dde5;
   border-radius: 7px;
   font-size: 12px;
   font-weight: 700;
-  margin: 0;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
@@ -743,6 +846,8 @@ tbody tr:hover {
   background: #f3f5f7;
 }
 
+/* Selected SUCCESS */
+
 .scenario-buttons .scenario.selected.success {
   background: #172033;
   color: #ffffff;
@@ -752,6 +857,8 @@ tbody tr:hover {
     0 0 0 3px rgba(23, 32, 51, 0.22);
   transform: translateY(-1px);
 }
+
+/* Selected DECLINED */
 
 .scenario-buttons .scenario.selected.decline {
   background: #fff0f0;
@@ -763,6 +870,8 @@ tbody tr:hover {
   transform: translateY(-1px);
 }
 
+/* Selected UNKNOWN */
+
 .scenario-buttons .scenario.selected.unknown {
   background: #fff5df;
   color: #986b14;
@@ -773,6 +882,8 @@ tbody tr:hover {
   transform: translateY(-1px);
 }
 
+/* Selected 3DS */
+
 .scenario-buttons .scenario.selected.three-ds {
   background: #eef1f5;
   color: #172033;
@@ -782,6 +893,8 @@ tbody tr:hover {
     0 0 0 3px rgba(23, 32, 51, 0.18);
   transform: translateY(-1px);
 }
+
+/* Selected DUPLICATE */
 
 .scenario-buttons .scenario.selected.duplicate {
   background: #eef1f5;
@@ -802,18 +915,20 @@ tbody tr:hover {
 }
 
 .response-title {
+  margin-bottom: 8px;
   font-size: 13px;
   font-weight: 800;
-  margin-bottom: 8px;
 }
 
 pre {
+  margin: 0;
+  padding: 15px;
+  overflow: auto;
   background: #111827;
   color: #dbeafe;
-  padding: 15px;
   border-radius: 9px;
-  overflow: auto;
   font-size: 12px;
+  line-height: 1.5;
 }
 
 /* =========================================================
@@ -838,16 +953,16 @@ pre {
   top: 2px;
   width: 12px;
   height: 12px;
+  border: 2px solid #ffffff;
   border-radius: 50%;
   background: #172033;
-  border: 2px solid white;
   box-shadow: 0 0 0 1px #172033;
 }
 
 .timeline-item strong {
   display: block;
-  font-size: 14px;
   margin-bottom: 5px;
+  font-size: 14px;
 }
 
 .timeline-item small {
@@ -858,32 +973,26 @@ pre {
    RECONCILIATION
 ========================================================= */
 
-.success-message {
-  margin-top: 15px;
-  background: #e8f6ed;
-  color: #277044;
-  padding: 12px 14px;
-  border-radius: 8px;
-  font-weight: 700;
+table button {
+  margin: 0;
 }
 
 /*
-   IMPORTANT:
-   Reconcile uses className="primary".
-   Keep it explicitly styled so it cannot be
-   affected by scenario-button styles.
+   Explicitly protect Reconcile from the
+   scenario-button styling.
 */
 
 table button.primary {
+  min-width: 90px;
+  padding: 9px 16px !important;
+  margin: 0 !important;
   background: #172033 !important;
   color: #ffffff !important;
   border: 1px solid #172033 !important;
-  padding: 9px 16px !important;
   border-radius: 7px !important;
   font-size: 12px !important;
   font-weight: 700 !important;
-  margin: 0 !important;
-  min-width: 90px;
+  opacity: 1 !important;
 }
 
 table button.primary:hover {
@@ -920,26 +1029,26 @@ table button.primary:hover {
 }
 
 .traceability em {
-  font-style: normal;
-  font-size: 12px;
-  font-weight: 700;
-  color: #596273;
-  background: #f1f3f7;
   padding: 6px 9px;
+  background: #f1f3f7;
+  color: #596273;
   border-radius: 6px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
   text-align: center;
 }
 
 /* =========================================================
-   GENERAL CARDS / LEGACY SUPPORT
+   GENERAL / LEGACY SUPPORT
 ========================================================= */
 
 .card {
-  background: white;
+  margin-bottom: 18px;
+  padding: 18px;
+  background: #ffffff;
   border: 1px solid #e2e6ee;
   border-radius: 12px;
-  padding: 18px;
-  margin-bottom: 18px;
 }
 
 .two {
@@ -949,72 +1058,72 @@ table button.primary:hover {
 }
 
 .note {
-  background: #eef5ff;
   padding: 12px;
+  background: #eef5ff;
   border-radius: 8px;
 }
 
-small {
-  color: #667085;
+.success-message {
+  margin-top: 15px;
+  padding: 12px 14px;
+  background: #e8f6ed;
+  color: #277044;
+  border-radius: 8px;
+  font-weight: 700;
 }
 
 /* =========================================================
-   RESPONSIVE
+   RESPONSIVE — TABLET
 ========================================================= */
 
-@media (max-width: 850px) {
-  .store-header {
-    padding: 18px 22px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .hero {
-    padding: 45px 22px 30px;
-  }
-
-  .section {
-    padding-left: 22px;
-    padding-right: 22px;
-  }
-
-  .product-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 900px) {
+  .metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .checkout-layout {
     grid-template-columns: 1fr;
   }
 
-  .product-detail {
+  .product-grid {
     grid-template-columns: 1fr;
-    gap: 25px;
   }
 
-  .metrics {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .traceability > div {
+  .product-detail {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 600px) {
-  .customer-page {
-    padding: 30px 16px 50px;
+/* =========================================================
+   RESPONSIVE — MOBILE
+========================================================= */
+
+@media (max-width: 650px) {
+  .store-header {
+    padding: 16px 20px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .store-header nav {
+    width: 100%;
+    flex-wrap: wrap;
   }
 
   .hero {
-    padding: 35px 16px 25px;
-  }
-
-  .section {
-    padding: 15px 16px 50px;
+    padding: 40px 18px 30px;
   }
 
   .hero h1 {
-    font-size: 42px;
+    font-size: 43px;
+  }
+
+  .hero p {
+    font-size: 17px;
+  }
+
+  .section {
+    padding: 15px 18px 50px;
   }
 
   .product-card {
@@ -1022,29 +1131,59 @@ small {
   }
 
   .product-detail {
+    margin: 15px;
     padding: 25px;
   }
 
+  .checkout-layout {
+    margin: 15px;
+  }
+
   .checkout-card,
-  .order-summary,
-  .confirmation-card {
+  .order-summary {
     padding: 22px;
+  }
+
+  .confirmation-card {
+    margin: 15px;
+    padding: 25px;
   }
 
   .confirmation-grid {
     grid-template-columns: 1fr;
   }
 
-  .metrics {
-    grid-template-columns: 1fr 1fr;
+  .ops-topbar {
+    padding: 16px 20px;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  main {
+  .ops-topbar > div {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+
+  .ops-content {
     padding: 25px 16px 50px;
   }
 
-  .panel {
-    padding: 16px;
+  .page-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .page-header h1 {
+    font-size: 34px;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .traceability > div {
+    grid-template-columns: 1fr;
   }
 
   .scenario-buttons {
