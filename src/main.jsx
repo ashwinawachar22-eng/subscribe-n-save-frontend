@@ -73,14 +73,11 @@ function Checkout({
 
           <label>
             Your name
-
             <input
               type="text"
               value={customerName}
               onChange={(e) =>
-                setCustomerName(
-                  e.target.value
-                )
+                setCustomerName(e.target.value)
               }
               placeholder="e.g. Ashwin Awachar"
               autoComplete="name"
@@ -89,17 +86,13 @@ function Checkout({
 
           <label>
             Card number
-
             <input
               type="text"
               inputMode="numeric"
               value={cardNumber}
               onChange={(e) =>
                 setCardNumber(
-                  e.target.value.replace(
-                    /\D/g,
-                    ""
-                  )
+                  e.target.value.replace(/\D/g, "")
                 )
               }
               maxLength={19}
@@ -118,9 +111,7 @@ function Checkout({
               type="checkbox"
               checked={consent}
               onChange={(e) =>
-                setConsent(
-                  e.target.checked
-                )
+                setConsent(e.target.checked)
               }
             />
 
@@ -237,15 +228,21 @@ function App() {
     useState(null);
 
   /*
-    IMPORTANT:
-    null = nothing selected
-    SUCCESS / DECLINED / UNKNOWN /
-    3DS_REQUIRED / DUPLICATE = selected button
+    Scenario button selection.
   */
   const [selectedOutcome, setSelectedOutcome] =
     useState(null);
 
-  const [lastIdempotencyKey, setLastIdempotencyKey] =
+  /*
+    IMPORTANT:
+    This stores ONLY the idempotency key of
+    the most recent SUCCESS request.
+
+    DUPLICATE REQUEST will reuse this key.
+    It will NOT reuse a DECLINED, UNKNOWN
+    or 3DS_REQUIRED key.
+  */
+  const [lastSuccessfulIdempotencyKey, setLastSuccessfulIdempotencyKey] =
     useState(null);
 
   const [loading, setLoading] =
@@ -358,10 +355,7 @@ function App() {
     }
 
     if (
-      cardNumber.replace(
-        /\D/g,
-        ""
-      ).length < 12
+      cardNumber.replace(/\D/g, "").length < 12
     ) {
       setError(
         "Please enter a valid demo card number."
@@ -403,10 +397,7 @@ function App() {
             frequency,
 
             paymentMethod:
-              cardNumber.replace(
-                /\D/g,
-                ""
-              ),
+              cardNumber.replace(/\D/g, ""),
 
             consent: true,
           }),
@@ -447,9 +438,7 @@ function App() {
     outcome
   ) {
     /*
-      Set selection FIRST.
-      This makes the clicked button
-      visually selected immediately.
+      Always select the clicked scenario.
     */
     setSelectedOutcome(
       outcome
@@ -460,32 +449,61 @@ function App() {
     );
 
     let key;
+    let actualOutcome = outcome;
 
-    if (
-      outcome ===
-      "DUPLICATE"
-    ) {
+    /*
+      DUPLICATE REQUEST
+      -----------------
+      We deliberately reuse ONLY the last
+      successful request's idempotency key.
+
+      This demonstrates:
+
+      Original SUCCESS
+          ↓
+      Same request sent again
+          ↓
+      Same idempotency key
+          ↓
+      Existing payment returned
+          ↓
+      No duplicate charge
+    */
+
+    if (outcome === "DUPLICATE") {
+      if (!lastSuccessfulIdempotencyKey) {
+        setPaymentResponse({
+          error:
+            "No previous successful payment is available for duplication. Run SUCCESS first, then click DUPLICATE REQUEST.",
+        });
+
+        return;
+      }
+
       key =
-        lastIdempotencyKey ||
-        `demo-${Date.now()}`;
+        lastSuccessfulIdempotencyKey;
+
+      actualOutcome = "SUCCESS";
     } else {
+      /*
+        Every normal scenario receives a
+        completely new idempotency key.
+      */
+
       key =
         `demo-${outcome}-${Date.now()}`;
 
-      setLastIdempotencyKey(
-        key
-      );
-    }
+      /*
+        Store the key ONLY when the scenario
+        is SUCCESS.
+      */
 
-    /*
-      DUPLICATE reuses the previous
-      successful request's idempotency key.
-    */
-    const actualOutcome =
-      outcome ===
-      "DUPLICATE"
-        ? "SUCCESS"
-        : outcome;
+      if (outcome === "SUCCESS") {
+        setLastSuccessfulIdempotencyKey(
+          key
+        );
+      }
+    }
 
     try {
       const response =
@@ -1789,7 +1807,9 @@ function App() {
           selectedProduct={
             selectedProduct
           }
-          frequency={frequency}
+          frequency={
+            frequency
+          }
           customerName={
             customerName
           }
@@ -1802,7 +1822,9 @@ function App() {
           setCardNumber={
             setCardNumber
           }
-          consent={consent}
+          consent={
+            consent
+          }
           setConsent={
             setConsent
           }
