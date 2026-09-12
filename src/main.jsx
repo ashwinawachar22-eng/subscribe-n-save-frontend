@@ -5,236 +5,8 @@ import "./style.css";
 const API =
   "https://subscribe-n-save-backend.vercel.app/api";
 
-const products = [
-  {
-    id: "coffee",
-    name: "Premium Coffee",
-    description:
-      "Freshly roasted premium coffee delivered to your doorstep.",
-    oneTime: 1099,
-    monthly: 999,
-    saving: "Save ₹100/month",
-  },
-  {
-    id: "essentials",
-    name: "Daily Essentials",
-    description:
-      "Everyday essentials delivered automatically when you need them.",
-    oneTime: 549,
-    monthly: 499,
-    saving: "Save ₹50/month",
-  },
-];
-
-/* =========================================================
-   CUSTOMER CHECKOUT
-
-   Kept outside App so input focus is preserved.
-========================================================= */
-
-function Checkout({
-  selectedProduct,
-  frequency,
-  customerName,
-  setCustomerName,
-  cardNumber,
-  setCardNumber,
-  consent,
-  setConsent,
-  error,
-  loading,
-  startBack,
-  enrollSubscription,
-}) {
-  if (!selectedProduct) return null;
-
-  return (
-    <section className="customer-page">
-      <button
-        className="back-button"
-        onClick={startBack}
-      >
-        ← Back
-      </button>
-
-      <div className="checkout-layout">
-        <div className="checkout-card">
-          <div className="eyebrow">
-            CHECKOUT
-          </div>
-
-          <h1>Start your subscription</h1>
-
-          <p>
-            Your first payment is made now.
-            Future payments will be processed
-            automatically according to your
-            subscription schedule.
-          </p>
-
-          <label>
-            Your name
-
-            <input
-              type="text"
-              value={customerName}
-              onChange={(e) =>
-                setCustomerName(
-                  e.target.value
-                )
-              }
-              placeholder="e.g. Ashwin Awachar"
-              autoComplete="name"
-            />
-          </label>
-
-          <label>
-            Card number
-
-            <input
-              type="text"
-              inputMode="numeric"
-              value={cardNumber}
-              onChange={(e) =>
-                setCardNumber(
-                  e.target.value.replace(
-                    /\D/g,
-                    ""
-                  )
-                )
-              }
-              maxLength={19}
-              placeholder="4242424242424242"
-              autoComplete="off"
-            />
-          </label>
-
-          <div className="demo-note">
-            Demo only — do not enter a real
-            card number.
-          </div>
-
-          <label className="consent-box">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(e) =>
-                setConsent(
-                  e.target.checked
-                )
-              }
-            />
-
-            <span>
-              I agree to recurring payments for
-              this subscription and authorize
-              future payments according to the
-              selected plan and frequency.
-            </span>
-          </label>
-
-          {error && (
-            <div className="error">
-              {error}
-            </div>
-          )}
-
-          <button
-            className="primary full-width"
-            disabled={loading}
-            onClick={enrollSubscription}
-          >
-            {loading
-              ? "Processing..."
-              : `Pay ₹${selectedProduct.monthly} & Start Subscription`}
-          </button>
-        </div>
-
-        <div className="order-summary">
-          <h3>Order Summary</h3>
-
-          <div className="summary-product">
-            <span>
-              {selectedProduct.name}
-            </span>
-
-            <strong>
-              ₹{selectedProduct.monthly}
-            </strong>
-          </div>
-
-          <div className="summary-line">
-            <span>Frequency</span>
-
-            <span>
-              {frequency === "MONTHLY"
-                ? "Monthly"
-                : "Weekly"}
-            </span>
-          </div>
-
-          <div className="summary-line">
-            <span>Initial payment</span>
-
-            <span>
-              ₹{selectedProduct.monthly}
-            </span>
-          </div>
-
-          <hr />
-
-          <div className="summary-total">
-            <span>Pay now</span>
-
-            <strong>
-              ₹{selectedProduct.monthly}
-            </strong>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* =========================================================
-   APP
-========================================================= */
-
 function App() {
-  /* =======================================================
-     CUSTOMER STORE STATE
-  ======================================================= */
-
-  const [mode, setMode] =
-    useState("store");
-
-  const [selectedProduct, setSelectedProduct] =
-    useState(null);
-
-  const [frequency, setFrequency] =
-    useState("MONTHLY");
-
-  const [customerName, setCustomerName] =
-    useState("");
-
-  const [cardNumber, setCardNumber] =
-    useState("");
-
-  const [consent, setConsent] =
-    useState(false);
-
-  const [enrollment, setEnrollment] =
-    useState(null);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  /* =======================================================
-     OPERATIONS STATE
-  ======================================================= */
+  const [tab, setTab] = useState("dashboard");
 
   const [subscriptions, setSubscriptions] =
     useState([]);
@@ -242,354 +14,170 @@ function App() {
   const [payments, setPayments] =
     useState([]);
 
-  const [selectedSubscription, setSelectedSubscription] =
-    useState(null);
-
   const [events, setEvents] =
     useState([]);
 
-  const [paymentResponse, setPaymentResponse] =
+  const [result, setResult] =
     useState(null);
 
-  /*
-    Selected payment scenario.
-
-    Possible values:
-
-    SUCCESS
-    DECLINED
-    UNKNOWN
-    3DS_REQUIRED
-    DUPLICATE
-  */
   const [selectedOutcome, setSelectedOutcome] =
     useState(null);
 
   /*
-    Stores the idempotency key from the
-    most recent SUCCESS payment.
+    This is intentionally NOT used to make the
+    first DUPLICATE click work.
 
-    DUPLICATE REQUEST reuses this key.
+    The duplicate flow creates its own key locally
+    and performs the original + duplicate request
+    sequentially.
   */
   const [lastIdempotencyKey, setLastIdempotencyKey] =
     useState(null);
 
-  /* =======================================================
-     LOAD OPERATIONS DATA
-  ======================================================= */
-
-  async function loadOperationsData() {
+  async function loadData() {
     try {
-      const [
-        subscriptionsResponse,
-        paymentsResponse,
-      ] = await Promise.all([
-        fetch(
-          `${API}/subscriptions`
-        ),
-        fetch(
-          `${API}/payments`
-        ),
+      const [s, p] = await Promise.all([
+        fetch(`${API}/subscriptions`),
+        fetch(`${API}/payments`)
       ]);
 
-      const subscriptionsData =
-        await subscriptionsResponse.json();
+      const subscriptionData =
+        await s.json();
 
-      const paymentsData =
-        await paymentsResponse.json();
+      const paymentData =
+        await p.json();
 
       setSubscriptions(
-        subscriptionsData
+        subscriptionData
       );
 
       setPayments(
-        paymentsData
+        paymentData
       );
-
-      if (
-        !selectedSubscription &&
-        subscriptionsData.length > 0
-      ) {
-        setSelectedSubscription(
-          subscriptionsData[0].id
-        );
-      }
-    } catch (err) {
+    } catch (error) {
       console.error(
-        "Unable to load operations data:",
-        err
+        "Failed to load data:",
+        error
       );
     }
   }
 
   useEffect(() => {
-    loadOperationsData();
+    loadData();
   }, []);
 
-  /* =======================================================
-     LOAD EVENTS
-  ======================================================= */
+  /*
+    ========================================================
+    PAYMENT SIMULATOR
+    ========================================================
 
-  async function loadEvents(
-    subscriptionId
-  ) {
-    if (!subscriptionId) return;
+    Normal scenarios:
+      SUCCESS
+      DECLINED
+      UNKNOWN
+      3DS_REQUIRED
 
-    try {
-      const response =
-        await fetch(
-          `${API}/subscriptions/${subscriptionId}/events`
-        );
+    Duplicate scenario:
 
-      const data =
-        await response.json();
+      FIRST CLICK:
+        1. Generate idempotency key.
+        2. Create original SUCCESS payment.
+        3. Immediately send same request again.
+        4. Backend finds existing payment.
+        5. Backend returns duplicate=true.
+        6. UI displays duplicate response.
 
-      setEvents(data);
-    } catch (err) {
-      console.error(
-        "Unable to load events:",
-        err
-      );
-    }
-  }
+      This means DUPLICATE REQUEST does NOT require
+      SUCCESS to be clicked first.
+  */
 
-  useEffect(() => {
-    if (selectedSubscription) {
-      loadEvents(
-        selectedSubscription
-      );
-    }
-  }, [selectedSubscription]);
-
-  /* =======================================================
-     CUSTOMER FLOW
-  ======================================================= */
-
-  function openProduct(product) {
-    setSelectedProduct(product);
-    setFrequency("MONTHLY");
-    setError("");
-    setMode("product");
-  }
-
-  function startCheckout() {
-    setError("");
-    setMode("checkout");
-  }
-
-  function backFromCheckout() {
-    setError("");
-    setMode("product");
-  }
-
-  /* =======================================================
-     ENROLL SUBSCRIPTION
-
-     Initial payment = CIT
-     Future payments = MIT
-  ======================================================= */
-
-  async function enrollSubscription() {
-    setError("");
-
-    if (!customerName.trim()) {
-      setError(
-        "Please enter your name."
-      );
-      return;
-    }
-
-    const cleanCardNumber =
-      cardNumber.replace(
-        /\D/g,
-        ""
-      );
-
-    if (
-      cleanCardNumber.length < 12
-    ) {
-      setError(
-        "Please enter a valid demo card number."
-      );
-      return;
-    }
-
-    if (!consent) {
-      setError(
-        "Please provide recurring-payment consent."
-      );
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response =
-        await fetch(
-          `${API}/subscriptions/enroll`,
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body: JSON.stringify({
-              customerName:
-                customerName.trim(),
-
-              plan:
-                selectedProduct.name,
-
-              amount:
-                selectedProduct.monthly,
-
-              currency: "INR",
-
-              frequency,
-
-              paymentMethod:
-                cleanCardNumber,
-
-              consent: true,
-            }),
-          }
-        );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-            "Enrollment failed"
-        );
-      }
-
-      setEnrollment(data);
-
-      setMode(
-        "confirmation"
-      );
-
-      await loadOperationsData();
-    } catch (err) {
-      setError(
-        err.message
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  /* =======================================================
-     PAYMENT SIMULATOR
-
-     IMPORTANT:
-     DUPLICATE REQUEST now works on the FIRST click.
-
-     If there is no previous SUCCESS payment:
-       1. Create original SUCCESS silently.
-       2. Immediately replay same request.
-       3. Backend detects same idempotency key.
-       4. UI shows duplicate response.
-
-     If a SUCCESS already exists:
-       Replay that same request directly.
-  ======================================================= */
-
-  async function simulatePayment(
-    outcome
-  ) {
+  async function simulate(outcome) {
     setSelectedOutcome(
       outcome
     );
 
-    setPaymentResponse(
-      null
-    );
+    setResult(null);
 
     try {
-      /* ===================================================
-         DUPLICATE REQUEST
-      =================================================== */
+      /*
+        ====================================================
+        DUPLICATE REQUEST
+        ====================================================
+      */
 
       if (
         outcome ===
         "DUPLICATE"
       ) {
-        let duplicateKey =
-          lastIdempotencyKey;
-
         /*
-          FIRST CLICK CASE
+          Always create a fresh deterministic key
+          for this duplicate demonstration.
 
-          No previous SUCCESS exists.
-
-          Create the original SUCCESS request
-          silently so that we can immediately
-          replay it.
+          We deliberately do NOT depend on React
+          state here.
         */
 
-        if (!duplicateKey) {
-          duplicateKey =
-            `demo-SUCCESS-${Date.now()}`;
+        const duplicateKey =
+          `DEMO-DUPLICATE-${Date.now()}`;
 
-          const originalResponse =
-            await fetch(
-              `${API}/payments/simulate`,
-              {
-                method: "POST",
+        /*
+          -----------------------------------------------
+          STEP 1
+          Create the original SUCCESS request.
+          -----------------------------------------------
+        */
 
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
+        const originalResponse =
+          await fetch(
+            `${API}/payments/simulate`,
+            {
+              method: "POST",
 
-                body: JSON.stringify({
-                  subscriptionId:
-                    selectedSubscription ||
-                    "SUB-10001",
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
 
-                  outcome:
-                    "SUCCESS",
+              body: JSON.stringify({
+                subscriptionId:
+                  "SUB-10001",
 
-                  amount: 999,
+                outcome:
+                  "SUCCESS",
 
-                  idempotencyKey:
-                    duplicateKey,
-                }),
-              }
-            );
+                amount: 999,
 
-          const originalData =
-            await originalResponse.json();
+                idempotencyKey:
+                  duplicateKey
+              })
+            }
+          );
 
-          if (
-            !originalResponse.ok
-          ) {
-            throw new Error(
-              originalData.error ||
-                "Unable to create original payment"
-            );
-          }
+        const originalData =
+          await originalResponse.json();
 
-          setLastIdempotencyKey(
-            duplicateKey
+        if (
+          !originalResponse.ok
+        ) {
+          throw new Error(
+            originalData.error ||
+              "Original payment creation failed"
           );
         }
 
         /*
-          SECOND REQUEST
+          Keep the key for reference/future testing.
+        */
 
-          Send exactly the same idempotency
-          key again.
+        setLastIdempotencyKey(
+          duplicateKey
+        );
 
-          Backend should return:
-            duplicate: true
-
-          and the original payment ID.
+        /*
+          -----------------------------------------------
+          STEP 2
+          Immediately replay the EXACT SAME request.
+          -----------------------------------------------
         */
 
         const duplicateResponse =
@@ -600,12 +188,11 @@ function App() {
 
               headers: {
                 "Content-Type":
-                  "application/json",
+                  "application/json"
               },
 
               body: JSON.stringify({
                 subscriptionId:
-                  selectedSubscription ||
                   "SUB-10001",
 
                 outcome:
@@ -614,8 +201,8 @@ function App() {
                 amount: 999,
 
                 idempotencyKey:
-                  duplicateKey,
-              }),
+                  duplicateKey
+              })
             }
           );
 
@@ -631,33 +218,42 @@ function App() {
           );
         }
 
-        setPaymentResponse(
+        /*
+          This should contain:
+
+            duplicate: true
+
+          and the ORIGINAL payment ID.
+        */
+
+        setResult(
           duplicateData
         );
 
-        await loadOperationsData();
+        await loadData();
 
-        if (
-          selectedSubscription
-        ) {
-          await loadEvents(
-            selectedSubscription
-          );
-        }
+        await loadEvents(
+          "SUB-10001"
+        );
 
         return;
       }
 
-      /* ===================================================
-         NORMAL PAYMENT SCENARIOS
-      =================================================== */
+      /*
+        ====================================================
+        NORMAL PAYMENT SCENARIOS
+        ====================================================
+      */
 
-      const key =
-        `demo-${outcome}-${Date.now()}`;
+      const idempotencyKey =
+        `SUB-10001-${Date.now()}`;
 
       /*
-        Save SUCCESS key for future
-        DUPLICATE REQUEST testing.
+        Remember SUCCESS key.
+
+        This is useful from a BA demonstration
+        perspective, although DUPLICATE itself
+        no longer depends on this state.
       */
 
       if (
@@ -665,7 +261,7 @@ function App() {
         "SUCCESS"
       ) {
         setLastIdempotencyKey(
-          key
+          idempotencyKey
         );
       }
 
@@ -677,21 +273,19 @@ function App() {
 
             headers: {
               "Content-Type":
-                "application/json",
+                "application/json"
             },
 
             body: JSON.stringify({
               subscriptionId:
-                selectedSubscription ||
                 "SUB-10001",
 
               outcome,
 
               amount: 999,
 
-              idempotencyKey:
-                key,
-            }),
+              idempotencyKey
+            })
           }
         );
 
@@ -705,30 +299,33 @@ function App() {
         );
       }
 
-      setPaymentResponse(
+      setResult(
         data
       );
 
-      await loadOperationsData();
+      await loadData();
 
-      if (
-        selectedSubscription
-      ) {
-        await loadEvents(
-          selectedSubscription
-        );
-      }
-    } catch (err) {
-      setPaymentResponse({
+      await loadEvents(
+        "SUB-10001"
+      );
+    } catch (error) {
+      console.error(
+        "Payment simulation error:",
+        error
+      );
+
+      setResult({
         error:
-          err.message,
+          error.message
       });
     }
   }
 
-  /* =======================================================
-     RECONCILIATION
-  ======================================================= */
+  /*
+    ========================================================
+    RECONCILIATION
+    ========================================================
+  */
 
   async function reconcile(
     paymentId
@@ -738,691 +335,307 @@ function App() {
         await fetch(
           `${API}/payments/${paymentId}/reconcile`,
           {
-            method: "POST",
+            method: "POST"
           }
         );
 
       const data =
         await response.json();
 
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-            "Reconciliation failed"
-        );
-      }
-
-      setPaymentResponse(
+      setResult(
         data
       );
 
-      await loadOperationsData();
+      await loadData();
 
-      if (
-        selectedSubscription
-      ) {
-        await loadEvents(
-          selectedSubscription
-        );
-      }
-    } catch (err) {
-      setPaymentResponse({
+      await loadEvents(
+        "SUB-10001"
+      );
+    } catch (error) {
+      setResult({
         error:
-          err.message,
+          error.message
       });
     }
   }
 
-  /* =======================================================
-     SUBSCRIPTION MANAGEMENT
-  ======================================================= */
+  /*
+    ========================================================
+    LOAD TIMELINE EVENTS
+    ========================================================
+  */
 
-  async function subscriptionAction(
-    subscriptionId,
-    action
+  async function loadEvents(
+    subscriptionId
   ) {
     try {
       const response =
         await fetch(
-          `${API}/subscriptions/${subscriptionId}/${action}`,
-          {
-            method: "POST",
-          }
+          `${API}/subscriptions/${subscriptionId}/events`
         );
 
       const data =
         await response.json();
 
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-            `Unable to ${action} subscription`
-        );
-      }
-
-      await loadOperationsData();
-
-      if (
-        selectedSubscription
-      ) {
-        await loadEvents(
-          selectedSubscription
-        );
-      }
-    } catch (err) {
+      setEvents(
+        data
+      );
+    } catch (error) {
       console.error(
-        err
+        "Failed to load events:",
+        error
       );
     }
   }
 
-  /* =======================================================
-     STORE HEADER
-  ======================================================= */
+  /*
+    ========================================================
+    SUBSCRIPTION ACTION
+    ========================================================
+  */
 
-  function StoreHeader() {
-    return (
-      <header className="store-header">
-        <div
-          className="brand"
-          onClick={() =>
-            setMode("store")
-          }
-        >
+  async function subscriptionAction(
+    id,
+    action
+  ) {
+    try {
+      await fetch(
+        `${API}/subscriptions/${id}/${action}`,
+        {
+          method: "POST"
+        }
+      );
+
+      await loadData();
+
+      await loadEvents(
+        id
+      );
+    } catch (error) {
+      console.error(
+        "Subscription action failed:",
+        error
+      );
+    }
+  }
+
+  /*
+    ========================================================
+    RENDER
+    ========================================================
+  */
+
+  return (
+    <>
+      <header>
+        <h1>
           Subscribe n Save
-        </div>
+        </h1>
 
-        <nav>
-          <button
-            className={
-              mode === "store"
-                ? "nav-active"
-                : ""
-            }
-            onClick={() =>
-              setMode("store")
-            }
-          >
-            Store
-          </button>
-
-          <button
-            onClick={() => {
-              setMode("ops");
-              loadOperationsData();
-            }}
-          >
-            Operations Console
-          </button>
-        </nav>
+        <p>
+          Payment & Subscription Simulator
+        </p>
       </header>
-    );
-  }
 
-  /* =======================================================
-     STORE
-  ======================================================= */
-
-  function Store() {
-    return (
-      <>
-        <section className="hero">
-          <div>
-            <div className="eyebrow">
-              SUBSCRIBE & SAVE
-            </div>
-
-            <h1>
-              Your essentials.
-              <br />
-              Delivered automatically.
-            </h1>
-
-            <p>
-              Subscribe once, save every
-              cycle, and let us take care
-              of the rest.
-            </p>
-          </div>
-        </section>
-
-        <section className="section">
-          <div className="section-title">
-            <div>
-              <h2>
-                Choose a product
-              </h2>
-
-              <p>
-                Subscribe and save compared
-                with one-time purchase.
-              </p>
-            </div>
-          </div>
-
-          <div className="product-grid">
-            {products.map(
-              (product) => (
-                <div
-                  className="product-card"
-                  key={product.id}
-                >
-                  <div className="product-icon">
-                    {product.id ===
-                    "coffee"
-                      ? "☕"
-                      : "📦"}
-                  </div>
-
-                  <h3>
-                    {product.name}
-                  </h3>
-
-                  <p>
-                    {
-                      product.description
-                    }
-                  </p>
-
-                  <div className="price-row">
-                    <strong>
-                      ₹
-                      {
-                        product.monthly
-                      }
-                    </strong>
-
-                    <span>
-                      / month
-                    </span>
-                  </div>
-
-                  <div className="saving">
-                    {
-                      product.saving
-                    }
-                  </div>
-
-                  <button
-                    className="primary full-width"
-                    onClick={() =>
-                      openProduct(
-                        product
-                      )
-                    }
-                  >
-                    Subscribe & Save
-                  </button>
-                </div>
-              )
-            )}
-          </div>
-        </section>
-      </>
-    );
-  }
-
-  /* =======================================================
-     PRODUCT DETAILS
-  ======================================================= */
-
-  function ProductDetails() {
-    if (!selectedProduct) {
-      return null;
-    }
-
-    return (
-      <section className="customer-page">
-        <button
-          className="back-button"
-          onClick={() =>
-            setMode("store")
-          }
-        >
-          ← Back to products
-        </button>
-
-        <div className="product-detail">
-          <div className="product-detail-icon">
-            {selectedProduct.id ===
-            "coffee"
-              ? "☕"
-              : "📦"}
-          </div>
-
-          <div>
-            <div className="eyebrow">
-              SUBSCRIBE & SAVE
-            </div>
-
-            <h1>
-              {
-                selectedProduct.name
-              }
-            </h1>
-
-            <p>
-              {
-                selectedProduct.description
-              }
-            </p>
-
-            <div className="detail-price">
-              ₹
-              {
-                selectedProduct.monthly
-              }
-
-              <span>
-                / month
-              </span>
-            </div>
-
-            <div className="saving large">
-              {
-                selectedProduct.saving
-              }
-            </div>
-
-            <h3>
-              Delivery frequency
-            </h3>
-
-            <select
-              value={frequency}
-              onChange={(e) =>
-                setFrequency(
-                  e.target.value
-                )
-              }
-            >
-              <option value="MONTHLY">
-                Monthly
-              </option>
-
-              <option value="WEEKLY">
-                Weekly
-              </option>
-            </select>
-
-            <div className="benefits">
-              <div>
-                ✓ Automatic recurring
-                delivery
-              </div>
-
-              <div>
-                ✓ Subscribe & Save
-                pricing
-              </div>
-
-              <div>
-                ✓ Manage or cancel
-                anytime
-              </div>
-
-              <div>
-                ✓ Secure payment
-                tokenization
-              </div>
-            </div>
-
+      <nav>
+        {[
+          "dashboard",
+          "subscriptions",
+          "payment",
+          "timeline",
+          "reconciliation",
+          "traceability"
+        ].map(
+          (item) => (
             <button
-              className="primary"
-              onClick={
-                startCheckout
+              key={item}
+              className={
+                tab === item
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setTab(item)
               }
             >
-              Continue to Checkout
+              {item.toUpperCase()}
             </button>
-          </div>
-        </div>
-      </section>
-    );
-  }
+          )
+        )}
+      </nav>
 
-  /* =======================================================
-     CONFIRMATION
-  ======================================================= */
+      <main>
 
-  function Confirmation() {
-    if (!enrollment) {
-      return null;
-    }
+        {/* =================================================
+            DASHBOARD
+        ================================================= */}
 
-    const {
-      subscription,
-      payment,
-    } = enrollment;
-
-    return (
-      <section className="customer-page">
-        <div className="confirmation-card">
-          <div className="success-icon">
-            ✓
-          </div>
-
-          <div className="eyebrow">
-            SUBSCRIPTION CONFIRMED
-          </div>
-
-          <h1>
-            You're all set!
-          </h1>
-
-          <p>
-            Your Subscribe & Save
-            subscription is now active.
-          </p>
-
-          <div className="confirmation-grid">
-            <div>
-              <span>
-                Subscription ID
-              </span>
-
-              <strong>
-                {
-                  subscription.id
-                }
-              </strong>
-            </div>
-
-            <div>
-              <span>
-                Plan
-              </span>
-
-              <strong>
-                {
-                  subscription.plan
-                }
-              </strong>
-            </div>
-
-            <div>
-              <span>
-                Recurring amount
-              </span>
-
-              <strong>
-                ₹
-                {
-                  subscription.amount
-                }
-              </strong>
-            </div>
-
-            <div>
-              <span>
-                Next payment
-              </span>
-
-              <strong>
-                {
-                  subscription.nextBillingDate
-                }
-              </strong>
-            </div>
-
-            <div>
-              <span>
-                Payment method
-              </span>
-
-              <strong>
-                {
-                  subscription.paymentMethod
-                }
-              </strong>
-            </div>
-
-            <div>
-              <span>
-                Initial payment
-              </span>
-
-              <strong>
-                {
-                  payment.status
-                }
-              </strong>
-            </div>
-          </div>
-
-          <div className="payment-explanation">
-            <strong>
-              Payment flow
-            </strong>
-
-            <p>
-              Your initial payment was
-              a{" "}
-              <b>
-                CIT (Customer Initiated
-                Transaction)
-              </b>
-              . Future scheduled
-              subscription payments will
-              be{" "}
-              <b>
-                MIT (Merchant Initiated
-                Transactions)
-              </b>
-              .
-            </p>
-          </div>
-
-          <button
-            className="primary"
-            onClick={() => {
-              setMode("ops");
-              loadOperationsData();
-            }}
-          >
-            Open Operations Console
-          </button>
-        </div>
-      </section>
-    );
-  }
-
-  /* =======================================================
-     DASHBOARD
-  ======================================================= */
-
-  function Dashboard() {
-    const active =
-      subscriptions.filter(
-        (s) =>
-          s.status ===
-          "ACTIVE"
-      ).length;
-
-    const retry =
-      subscriptions.filter(
-        (s) =>
-          s.status ===
-          "PAYMENT_RETRY"
-      ).length;
-
-    const paused =
-      subscriptions.filter(
-        (s) =>
-          s.status ===
-          "PAUSED"
-      ).length;
-
-    const unknown =
-      payments.filter(
-        (p) =>
-          p.status ===
-          "UNKNOWN"
-      ).length;
-
-    return (
-      <>
-        <div className="page-header">
-          <div>
-            <h1>
-              Operations Dashboard
-            </h1>
-
-            <p>
-              Payment and subscription
-              operations overview.
-            </p>
-          </div>
-        </div>
-
-        <div className="metrics">
-          <div className="metric">
-            <span>
-              Total subscriptions
-            </span>
-
-            <strong>
-              {
-                subscriptions.length
-              }
-            </strong>
-          </div>
-
-          <div className="metric">
-            <span>
-              Active
-            </span>
-
-            <strong>
-              {active}
-            </strong>
-          </div>
-
-          <div className="metric">
-            <span>
-              Payment retry
-            </span>
-
-            <strong>
-              {retry}
-            </strong>
-          </div>
-
-          <div className="metric">
-            <span>
-              Paused
-            </span>
-
-            <strong>
-              {paused}
-            </strong>
-          </div>
-
-          <div className="metric">
-            <span>
-              Unknown payments
-            </span>
-
-            <strong>
-              {unknown}
-            </strong>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  /* =======================================================
-     SUBSCRIPTION MANAGEMENT
-  ======================================================= */
-
-  function SubscriptionManagement() {
-    return (
-      <section className="panel">
-        <div className="panel-header">
-          <div>
+        {tab ===
+          "dashboard" && (
+          <>
             <h2>
-              Subscriptions
+              Operations Dashboard
             </h2>
 
-            <p>
-              Manage subscription
-              lifecycle.
-            </p>
-          </div>
-        </div>
+            <div className="grid">
 
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>
-                  Customer
-                </th>
-                <th>
-                  Plan
-                </th>
-                <th>
-                  Amount
-                </th>
-                <th>
-                  Status
-                </th>
-                <th>
-                  Next Billing
-                </th>
-                <th>
-                  Actions
-                </th>
-              </tr>
-            </thead>
+              <div className="card">
+                <small>
+                  Active subscriptions
+                </small>
 
-            <tbody>
-              {subscriptions.map(
-                (s) => (
-                  <tr
-                    key={s.id}
-                  >
-                    <td>
-                      {s.id}
-                    </td>
+                <b>
+                  982
+                </b>
+              </div>
 
-                    <td>
-                      {
-                        s.customer
-                      }
-                    </td>
+              <div className="card">
+                <small>
+                  Payment retry
+                </small>
 
-                    <td>
-                      {s.plan}
-                    </td>
+                <b>
+                  42
+                </b>
+              </div>
 
-                    <td>
-                      ₹
-                      {s.amount}
-                    </td>
+              <div className="card">
+                <small>
+                  Suspended
+                </small>
 
-                    <td>
-                      <span
-                        className={`status ${s.status}`}
-                      >
-                        {
-                          s.status
+                <b>
+                  18
+                </b>
+              </div>
+
+              <div className="card">
+                <small>
+                  Unknown payments
+                </small>
+
+                <b>
+                  5
+                </b>
+              </div>
+
+            </div>
+
+            <div className="card">
+
+              <h3>
+                Architecture
+              </h3>
+
+              <p>
+                Customer → Merchant → PSP
+                → Acquirer → Card Network
+                → Issuer
+              </p>
+
+              <p className="note">
+                This is a learning simulator.
+                No real payment is processed.
+              </p>
+
+            </div>
+          </>
+        )}
+
+        {/* =================================================
+            SUBSCRIPTIONS
+        ================================================= */}
+
+        {tab ===
+          "subscriptions" && (
+          <>
+            <h2>
+              Subscription Management
+            </h2>
+
+            <div className="card">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>
+                      ID
+                    </th>
+
+                    <th>
+                      Customer
+                    </th>
+
+                    <th>
+                      Plan
+                    </th>
+
+                    <th>
+                      Amount
+                    </th>
+
+                    <th>
+                      Next Billing
+                    </th>
+
+                    <th>
+                      Status
+                    </th>
+
+                    <th>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+
+                  {subscriptions.map(
+                    (s) => (
+                      <tr
+                        key={
+                          s.id
                         }
-                      </span>
-                    </td>
+                      >
 
-                    <td>
-                      {
-                        s.nextBillingDate
-                      }
-                    </td>
+                        <td>
+                          {s.id}
+                        </td>
 
-                    <td>
-                      <div className="action-buttons">
-                        {s.status ===
-                          "ACTIVE" && (
+                        <td>
+                          {
+                            s.customer
+                          }
+                        </td>
+
+                        <td>
+                          {s.plan}
+                        </td>
+
+                        <td>
+                          ₹
+                          {
+                            s.amount
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            s.nextBillingDate
+                          }
+                        </td>
+
+                        <td>
+                          <span className="badge">
+                            {
+                              s.status
+                            }
+                          </span>
+                        </td>
+
+                        <td>
+
                           <button
                             onClick={() =>
                               subscriptionAction(
@@ -1433,10 +646,7 @@ function App() {
                           >
                             Pause
                           </button>
-                        )}
 
-                        {s.status ===
-                          "PAUSED" && (
                           <button
                             onClick={() =>
                               subscriptionAction(
@@ -1447,612 +657,554 @@ function App() {
                           >
                             Resume
                           </button>
-                        )}
 
-                        {s.status !==
-                          "CANCELLED" && (
-                          <button
-                            onClick={() =>
-                              subscriptionAction(
-                                s.id,
-                                "cancel"
-                              )
-                            }
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    );
-  }
+                        </td>
 
-  /* =======================================================
-     PAYMENT SIMULATOR
-  ======================================================= */
+                      </tr>
+                    )
+                  )}
 
-  function PaymentSimulator() {
-    return (
-      <section className="panel">
-        <div className="panel-header">
-          <div>
+                </tbody>
+
+              </table>
+
+            </div>
+          </>
+        )}
+
+        {/* =================================================
+            PAYMENT SIMULATOR
+        ================================================= */}
+
+        {tab ===
+          "payment" && (
+          <>
             <h2>
-              Recurring Payment Simulator
+              Payment Simulator
             </h2>
 
-            <p>
-              Simulate PSP outcomes for
-              MIT recurring payments.
-            </p>
-          </div>
-        </div>
+            <div className="two">
 
-        <div className="simulator">
-          <label>
-            Subscription
+              <div className="card">
 
-            <select
-              value={
-                selectedSubscription ||
-                ""
-              }
-              onChange={(e) =>
-                setSelectedSubscription(
-                  e.target.value
-                )
-              }
-            >
-              {subscriptions.map(
-                (s) => (
-                  <option
-                    key={s.id}
-                    value={s.id}
-                  >
-                    {s.id} —{" "}
-                    {
-                      s.customer
+                <h3>
+                  Recurring Payment
+                </h3>
+
+                <p>
+                  <b>
+                    Subscription:
+                  </b>{" "}
+                  SUB-10001
+                </p>
+
+                <p>
+                  <b>
+                    Amount:
+                  </b>{" "}
+                  ₹999 INR
+                </p>
+
+                <p>
+                  <b>
+                    Payment Type:
+                  </b>{" "}
+                  Merchant-Initiated
+                  Transaction (MIT)
+                </p>
+
+                <p>
+                  <b>
+                    Payment Method:
+                  </b>{" "}
+                  Tokenized card
+                  •••• 4242
+                </p>
+
+                <div className="scenario-buttons">
+
+                  {/* SUCCESS */}
+
+                  <button
+                    className={
+                      selectedOutcome ===
+                      "SUCCESS"
+                        ? "primary"
+                        : ""
                     }
-                  </option>
-                )
-              )}
-            </select>
-          </label>
+                    onClick={() =>
+                      simulate(
+                        "SUCCESS"
+                      )
+                    }
+                  >
+                    SUCCESS
+                  </button>
 
-          <div className="scenario-buttons">
+                  {/* DECLINE */}
 
-            {/* SUCCESS */}
+                  <button
+                    className={
+                      selectedOutcome ===
+                      "DECLINED"
+                        ? "primary"
+                        : ""
+                    }
+                    onClick={() =>
+                      simulate(
+                        "DECLINED"
+                      )
+                    }
+                  >
+                    DECLINE
+                  </button>
 
-            <button
-              className={
-                selectedOutcome ===
-                "SUCCESS"
-                  ? "scenario selected success"
-                  : "scenario"
-              }
-              onClick={() =>
-                simulatePayment(
-                  "SUCCESS"
-                )
-              }
-            >
-              SUCCESS
-            </button>
+                  {/* UNKNOWN */}
 
-            {/* DECLINED */}
+                  <button
+                    className={
+                      selectedOutcome ===
+                      "UNKNOWN"
+                        ? "primary"
+                        : ""
+                    }
+                    onClick={() =>
+                      simulate(
+                        "UNKNOWN"
+                      )
+                    }
+                  >
+                    TIMEOUT / UNKNOWN
+                  </button>
 
-            <button
-              className={
-                selectedOutcome ===
-                "DECLINED"
-                  ? "scenario selected decline"
-                  : "scenario"
-              }
-              onClick={() =>
-                simulatePayment(
-                  "DECLINED"
-                )
-              }
-            >
-              DECLINE
-            </button>
+                  {/* 3DS */}
 
-            {/* UNKNOWN */}
+                  <button
+                    className={
+                      selectedOutcome ===
+                      "3DS_REQUIRED"
+                        ? "primary"
+                        : ""
+                    }
+                    onClick={() =>
+                      simulate(
+                        "3DS_REQUIRED"
+                      )
+                    }
+                  >
+                    3DS REQUIRED
+                  </button>
 
-            <button
-              className={
-                selectedOutcome ===
-                "UNKNOWN"
-                  ? "scenario selected unknown"
-                  : "scenario"
-              }
-              onClick={() =>
-                simulatePayment(
-                  "UNKNOWN"
-                )
-              }
-            >
-              TIMEOUT / UNKNOWN
-            </button>
+                  {/* DUPLICATE */}
 
-            {/* 3DS */}
+                  <button
+                    className={
+                      selectedOutcome ===
+                      "DUPLICATE"
+                        ? "primary"
+                        : ""
+                    }
+                    onClick={() =>
+                      simulate(
+                        "DUPLICATE"
+                      )
+                    }
+                  >
+                    DUPLICATE REQUEST
+                  </button>
 
-            <button
-              className={
-                selectedOutcome ===
-                "3DS_REQUIRED"
-                  ? "scenario selected three-ds"
-                  : "scenario"
-              }
-              onClick={() =>
-                simulatePayment(
-                  "3DS_REQUIRED"
-                )
-              }
-            >
-              3DS REQUIRED
-            </button>
+                </div>
 
-            {/* DUPLICATE */}
+              </div>
 
-            <button
-              className={
-                selectedOutcome ===
-                "DUPLICATE"
-                  ? "scenario selected duplicate"
-                  : "scenario"
-              }
-              onClick={() =>
-                simulatePayment(
-                  "DUPLICATE"
-                )
-              }
-            >
-              DUPLICATE REQUEST
-            </button>
-          </div>
-        </div>
+              {/* RESPONSE */}
 
-        {paymentResponse && (
-          <div className="response-box">
-            <div className="response-title">
-              Payment Response
+              <div className="card">
+
+                <h3>
+                  Payment Response
+                </h3>
+
+                {result ? (
+                  <pre>
+                    {JSON.stringify(
+                      result,
+                      null,
+                      2
+                    )}
+                  </pre>
+                ) : (
+                  <p>
+                    Select a payment
+                    outcome.
+                  </p>
+                )}
+
+              </div>
+
             </div>
 
-            <pre>
-              {JSON.stringify(
-                paymentResponse,
-                null,
-                2
-              )}
-            </pre>
-          </div>
+            {/* BA RULES */}
+
+            <div className="card">
+
+              <h3>
+                BA Rules Demonstrated
+              </h3>
+
+              <ul>
+
+                <li>
+                  Idempotency prevents
+                  duplicate payment
+                  attempts.
+                </li>
+
+                <li>
+                  UNKNOWN is not
+                  automatically treated
+                  as DECLINED.
+                </li>
+
+                <li>
+                  UNKNOWN requires
+                  reconciliation.
+                </li>
+
+                <li>
+                  Successful payment
+                  advances the billing
+                  cycle.
+                </li>
+
+                <li>
+                  Retryable declines
+                  can enter payment
+                  retry.
+                </li>
+
+                <li>
+                  Duplicate requests
+                  using the same
+                  idempotency key are
+                  safely handled.
+                </li>
+
+              </ul>
+
+            </div>
+          </>
         )}
-      </section>
-    );
-  }
 
-  /* =======================================================
-     TIMELINE
-  ======================================================= */
+        {/* =================================================
+            TIMELINE
+        ================================================= */}
 
-  function Timeline() {
-    return (
-      <section className="panel">
-        <div className="panel-header">
-          <div>
+        {tab ===
+          "timeline" && (
+          <>
             <h2>
-              Timeline
+              Payment Timeline
             </h2>
 
-            <p>
-              Subscription event and audit
-              trail.
-            </p>
-          </div>
-        </div>
+            <div className="card">
 
-        <div className="timeline">
-          {events.length ===
-          0 ? (
-            <p>
-              Select a subscription to view
-              events.
-            </p>
-          ) : (
-            events.map(
-              (
-                event,
-                index
-              ) => (
-                <div
-                  className="timeline-item"
-                  key={index}
-                >
-                  <div className="timeline-dot" />
+              <button
+                className="primary"
+                onClick={() =>
+                  loadEvents(
+                    "SUB-10001"
+                  )
+                }
+              >
+                Load SUB-10001
+              </button>
 
-                  <div>
-                    <strong>
+              <div className="timeline">
+
+                {events.map(
+                  (
+                    event,
+                    index
+                  ) => (
+                    <div
+                      key={
+                        index
+                      }
+                    >
+                      <b>
+                        {
+                          event.time
+                        }
+                      </b>
+
+                      {" — "}
+
                       {
                         event.text
                       }
-                    </strong>
+                    </div>
+                  )
+                )}
 
-                    <small>
-                      {
-                        event.time
-                      }
-                    </small>
-                  </div>
-                </div>
-              )
-            )
-          )}
-        </div>
-      </section>
-    );
-  }
+              </div>
 
-  /* =======================================================
-     RECONCILIATION
-  ======================================================= */
+            </div>
+          </>
+        )}
 
-  function Reconciliation() {
-    const unknownPayments =
-      payments.filter(
-        (p) =>
-          p.status ===
-          "UNKNOWN"
-      );
+        {/* =================================================
+            RECONCILIATION
+        ================================================= */}
 
-    return (
-      <section className="panel">
-        <div className="panel-header">
-          <div>
+        {tab ===
+          "reconciliation" && (
+          <>
             <h2>
-              Reconciliation
+              Payment Reconciliation
             </h2>
 
-            <p>
-              Resolve UNKNOWN payments
-              before another charge is
-              attempted.
-            </p>
-          </div>
-        </div>
+            <div className="note">
+              UNKNOWN/TIMEOUT must not
+              automatically become DECLINED.
+              Reconcile before another charge.
+            </div>
 
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>
-                  Payment ID
-                </th>
+            <div className="card">
 
-                <th>
-                  Subscription
-                </th>
+              <table>
 
-                <th>
-                  Amount
-                </th>
+                <thead>
 
-                <th>
-                  Status
-                </th>
+                  <tr>
+                    <th>
+                      Payment
+                    </th>
 
-                <th>
-                  Action
-                </th>
-              </tr>
-            </thead>
+                    <th>
+                      Subscription
+                    </th>
 
-            <tbody>
-              {payments.map(
-                (p) => (
-                  <tr
-                    key={p.id}
-                  >
-                    <td>
-                      {p.id}
-                    </td>
+                    <th>
+                      Amount
+                    </th>
 
-                    <td>
-                      {
-                        p.subscriptionId
-                      }
-                    </td>
+                    <th>
+                      Status
+                    </th>
 
-                    <td>
-                      ₹
-                      {p.amount}
-                    </td>
-
-                    <td>
-                      <span
-                        className={`status ${p.status}`}
-                      >
-                        {
-                          p.status
-                        }
-                      </span>
-                    </td>
-
-                    <td>
-                      {p.status ===
-                      "UNKNOWN" ? (
-                        <button
-                          className="primary"
-                          onClick={() =>
-                            reconcile(
-                              p.id
-                            )
-                          }
-                        >
-                          Reconcile
-                        </button>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
+                    <th>
+                      Action
+                    </th>
                   </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
 
-        {unknownPayments.length ===
-          0 && (
-          <div className="success-message">
-            ✓ No UNKNOWN payments
-            require reconciliation.
-          </div>
+                </thead>
+
+                <tbody>
+
+                  {payments.map(
+                    (payment) => (
+                      <tr
+                        key={
+                          payment.id
+                        }
+                      >
+
+                        <td>
+                          {
+                            payment.id
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            payment.subscriptionId
+                          }
+                        </td>
+
+                        <td>
+                          ₹
+                          {
+                            payment.amount
+                          }
+                        </td>
+
+                        <td>
+                          <span className="badge">
+                            {
+                              payment.status
+                            }
+                          </span>
+                        </td>
+
+                        <td>
+
+                          {payment.status ===
+                          "UNKNOWN" ? (
+                            <button
+                              className="primary"
+                              onClick={() =>
+                                reconcile(
+                                  payment.id
+                                )
+                              }
+                            >
+                              Reconcile
+                            </button>
+                          ) : (
+                            "—"
+                          )}
+
+                        </td>
+
+                      </tr>
+                    )
+                  )}
+
+                </tbody>
+
+              </table>
+
+            </div>
+          </>
         )}
-      </section>
-    );
-  }
 
-  /* =======================================================
-     TRACEABILITY
-  ======================================================= */
+        {/* =================================================
+            TRACEABILITY
+        ================================================= */}
 
-  function Traceability() {
-    return (
-      <section className="panel">
-        <div className="panel-header">
-          <div>
+        {tab ===
+          "traceability" && (
+          <>
             <h2>
               Requirement Traceability
             </h2>
 
-            <p>
-              Business requirement →
-              feature → implementation.
-            </p>
-          </div>
-        </div>
+            <div className="card">
 
-        <div className="traceability">
-          <div>
-            <strong>
-              BR-01
-            </strong>
+              <table>
 
-            <span>
-              Customer can subscribe to a
-              product and provide recurring
-              payment consent.
-            </span>
+                <thead>
 
-            <em>
-              Enrollment / Consent
-            </em>
-          </div>
+                  <tr>
 
-          <div>
-            <strong>
-              BR-02
-            </strong>
+                    <th>
+                      Business Requirement
+                    </th>
 
-            <span>
-              Initial payment is customer
-              initiated.
-            </span>
+                    <th>
+                      User Story
+                    </th>
 
-            <em>
-              CIT Payment
-            </em>
-          </div>
+                    <th>
+                      Implementation
+                    </th>
 
-          <div>
-            <strong>
-              BR-03
-            </strong>
+                  </tr>
 
-            <span>
-              Future payments are
-              automatically triggered
-              according to the billing
-              schedule.
-            </span>
+                </thead>
 
-            <em>
-              MIT / Scheduler
-            </em>
-          </div>
+                <tbody>
 
-          <div>
-            <strong>
-              BR-04
-            </strong>
+                  <tr>
+                    <td>
+                      Recurring billing
+                    </td>
 
-            <span>
-              UNKNOWN payment must be
-              reconciled before another
-              charge.
-            </span>
+                    <td>
+                      US-22
+                    </td>
 
-            <em>
-              Reconciliation
-            </em>
-          </div>
+                    <td>
+                      Payment Simulator
+                    </td>
+                  </tr>
 
-          <div>
-            <strong>
-              BR-05
-            </strong>
+                  <tr>
+                    <td>
+                      Duplicate prevention
+                    </td>
 
-            <span>
-              Duplicate payment requests
-              must not result in duplicate
-              charges.
-            </span>
+                    <td>
+                      US-24
+                    </td>
 
-            <em>
-              Idempotency
-            </em>
-          </div>
+                    <td>
+                      Idempotency Key
+                    </td>
+                  </tr>
 
-          <div>
-            <strong>
-              BR-06
-            </strong>
+                  <tr>
+                    <td>
+                      3DS / 3RI
+                    </td>
 
-            <span>
-              Customer can pause, resume
-              and cancel subscription.
-            </span>
+                    <td>
+                      US-32
+                    </td>
 
-            <em>
-              Subscription Lifecycle
-            </em>
-          </div>
-        </div>
-      </section>
-    );
-  }
+                    <td>
+                      Authentication simulation
+                    </td>
+                  </tr>
 
-  /* =======================================================
-     OPERATIONS CONSOLE
-  ======================================================= */
+                  <tr>
+                    <td>
+                      Payment retry
+                    </td>
 
-  function OperationsConsole() {
-    return (
-      <div className="ops-shell">
-        <div className="ops-topbar">
-          <div>
-            <strong>
-              Subscribe n Save
-            </strong>
+                    <td>
+                      US-46
+                    </td>
 
-            <span>
-              Operations Console
-            </span>
-          </div>
+                    <td>
+                      Decline scenario
+                    </td>
+                  </tr>
 
-          <button
-            onClick={() =>
-              setMode("store")
-            }
-          >
-            ← Customer Store
-          </button>
-        </div>
+                  <tr>
+                    <td>
+                      UNKNOWN reconciliation
+                    </td>
 
-        <div className="ops-content">
-          <Dashboard />
+                    <td>
+                      US-43 / US-44
+                    </td>
 
-          <SubscriptionManagement />
+                    <td>
+                      Reconciliation API
+                    </td>
+                  </tr>
 
-          <PaymentSimulator />
+                  <tr>
+                    <td>
+                      Pause / Resume
+                    </td>
 
-          <Timeline />
+                    <td>
+                      US-54 / US-56
+                    </td>
 
-          <Reconciliation />
+                    <td>
+                      Subscription API
+                    </td>
+                  </tr>
 
-          <Traceability />
-        </div>
-      </div>
-    );
-  }
+                </tbody>
 
-  /* =======================================================
-     MAIN RENDER
-  ======================================================= */
+              </table>
 
-  return (
-    <div>
-      {mode !== "ops" && (
-        <StoreHeader />
-      )}
+            </div>
+          </>
+        )}
 
-      {mode === "store" && (
-        <Store />
-      )}
-
-      {mode === "product" && (
-        <ProductDetails />
-      )}
-
-      {mode === "checkout" && (
-        <Checkout
-          selectedProduct={
-            selectedProduct
-          }
-          frequency={frequency}
-          customerName={
-            customerName
-          }
-          setCustomerName={
-            setCustomerName
-          }
-          cardNumber={
-            cardNumber
-          }
-          setCardNumber={
-            setCardNumber
-          }
-          consent={consent}
-          setConsent={
-            setConsent
-          }
-          error={error}
-          loading={loading}
-          startBack={
-            backFromCheckout
-          }
-          enrollSubscription={
-            enrollSubscription
-          }
-        />
-      )}
-
-      {mode === "confirmation" && (
-        <Confirmation />
-      )}
-
-      {mode === "ops" && (
-        <OperationsConsole />
-      )}
-    </div>
+      </main>
+    </>
   );
 }
-
-/* =========================================================
-   ROOT
-========================================================= */
 
 createRoot(
   document.getElementById("root")
 ).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  <App />
 );
