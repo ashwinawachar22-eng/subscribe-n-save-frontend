@@ -2,11 +2,52 @@ import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 
-const API =
-  "https://subscribe-n-save-backend.vercel.app/api";
+const API = "https://subscribe-n-save-backend.vercel.app/api";
+
+const products = [
+  {
+    id: "coffee",
+    name: "Premium Coffee",
+    description:
+      "Fresh premium coffee delivered to your doorstep.",
+    oneTime: 1099,
+    monthly: 999,
+    save: "Save ₹100/month"
+  },
+  {
+    id: "essentials",
+    name: "Daily Essentials",
+    description:
+      "Everyday household essentials delivered automatically.",
+    oneTime: 549,
+    monthly: 499,
+    save: "Save ₹50/month"
+  }
+];
 
 function App() {
-  const [tab, setTab] = useState("dashboard");
+  const [mode, setMode] = useState("store");
+
+  const [selectedProduct, setSelectedProduct] =
+    useState(null);
+
+  const [frequency, setFrequency] =
+    useState("MONTHLY");
+
+  const [customerName, setCustomerName] =
+    useState("");
+
+  const [paymentMethod, setPaymentMethod] =
+    useState("");
+
+  const [consent, setConsent] =
+    useState(false);
+
+  const [checkoutResult, setCheckoutResult] =
+    useState(null);
+
+  const [tab, setTab] =
+    useState("dashboard");
 
   const [subscriptions, setSubscriptions] =
     useState([]);
@@ -20,18 +61,10 @@ function App() {
   const [result, setResult] =
     useState(null);
 
-  const [selectedOutcome, setSelectedOutcome] =
+  const [lastIdempotencyKey, setLastIdempotencyKey] =
     useState(null);
 
-  /*
-    This is intentionally NOT used to make the
-    first DUPLICATE click work.
-
-    The duplicate flow creates its own key locally
-    and performs the original + duplicate request
-    sequentially.
-  */
-  const [lastIdempotencyKey, setLastIdempotencyKey] =
+  const [selectedOutcome, setSelectedOutcome] =
     useState(null);
 
   async function loadData() {
@@ -41,24 +74,20 @@ function App() {
         fetch(`${API}/payments`)
       ]);
 
-      const subscriptionData =
-        await s.json();
-
-      const paymentData =
-        await p.json();
-
       setSubscriptions(
-        subscriptionData
+        await s.json()
       );
 
       setPayments(
-        paymentData
+        await p.json()
       );
     } catch (error) {
-      console.error(
-        "Failed to load data:",
-        error
-      );
+      setResult({
+        error:
+          "Unable to connect to backend",
+        details:
+          error.message
+      });
     }
   }
 
@@ -66,66 +95,141 @@ function App() {
     loadData();
   }, []);
 
-  /*
-    ========================================================
-    PAYMENT SIMULATOR
-    ========================================================
+  function openProduct(product) {
+    setSelectedProduct(product);
+    setFrequency("MONTHLY");
+    setMode("product");
+  }
 
-    Normal scenarios:
-      SUCCESS
-      DECLINED
-      UNKNOWN
-      3DS_REQUIRED
+  function startCheckout() {
+    setCustomerName("");
+    setPaymentMethod("");
+    setConsent(false);
+    setCheckoutResult(null);
+    setMode("checkout");
+  }
 
-    Duplicate scenario:
+  async function enroll() {
+    if (
+      !selectedProduct ||
+      !customerName ||
+      !paymentMethod ||
+      !consent
+    ) {
+      return;
+    }
 
-      FIRST CLICK:
-        1. Generate idempotency key.
-        2. Create original SUCCESS payment.
-        3. Immediately send same request again.
-        4. Backend finds existing payment.
-        5. Backend returns duplicate=true.
-        6. UI displays duplicate response.
+    const response =
+      await fetch(
+        `${API}/subscriptions/enroll`,
+        {
+          method: "POST",
 
-      This means DUPLICATE REQUEST does NOT require
-      SUCCESS to be clicked first.
-  */
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
 
-  async function simulate(outcome) {
-    setSelectedOutcome(
-      outcome
+          body: JSON.stringify({
+            customerName,
+
+            plan:
+              selectedProduct.name,
+
+            amount:
+              selectedProduct.monthly,
+
+            currency:
+              "INR",
+
+            frequency,
+
+            paymentMethod,
+
+            consent: true
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      setCheckoutResult(
+        data
+      );
+      return;
+    }
+
+    setCheckoutResult(
+      data
     );
 
+    setMode(
+      "confirmation"
+    );
+
+    await loadData();
+  }
+
+  /*
+   * ==========================================================
+   * PAYMENT SIMULATOR
+   * ==========================================================
+   *
+   * Normal scenarios:
+   *   SUCCESS
+   *   DECLINED
+   *   UNKNOWN
+   *   3DS_REQUIRED
+   *
+   * Duplicate scenario:
+   *
+   *   One click performs TWO backend requests:
+   *
+   *   1. Original SUCCESS payment
+   *   2. Same SUCCESS request again using the
+   *      SAME idempotency key
+   *
+   *   Backend detects the second request as duplicate.
+   *
+   *   Example idempotency key:
+   *
+   *   DEMO-DUPLICATE-1789236139422
+   */
+
+  async function simulate(outcome) {
     setResult(null);
 
-    try {
-      /*
-        ====================================================
-        DUPLICATE REQUEST
-        ====================================================
-      */
+    /*
+     * ========================================================
+     * DUPLICATE REQUEST
+     * ========================================================
+     */
 
-      if (
-        outcome ===
+    if (outcome === "DUPLICATE") {
+      setSelectedOutcome(
         "DUPLICATE"
-      ) {
-        /*
-          Always create a fresh deterministic key
-          for this duplicate demonstration.
+      );
 
-          We deliberately do NOT depend on React
-          state here.
-        */
+      try {
+        /*
+         * Generate the duplicate-demo idempotency key.
+         *
+         * Example:
+         *
+         * DEMO-DUPLICATE-1789236139422
+         */
 
         const duplicateKey =
           `DEMO-DUPLICATE-${Date.now()}`;
 
         /*
-          -----------------------------------------------
-          STEP 1
-          Create the original SUCCESS request.
-          -----------------------------------------------
-        */
+         * ----------------------------------------------------
+         * STEP 1
+         * Create the ORIGINAL successful payment.
+         * ----------------------------------------------------
+         */
 
         const originalResponse =
           await fetch(
@@ -166,19 +270,19 @@ function App() {
         }
 
         /*
-          Keep the key for reference/future testing.
-        */
+         * Keep the key in state for reference.
+         */
 
         setLastIdempotencyKey(
           duplicateKey
         );
 
         /*
-          -----------------------------------------------
-          STEP 2
-          Immediately replay the EXACT SAME request.
-          -----------------------------------------------
-        */
+         * ----------------------------------------------------
+         * STEP 2
+         * Replay the EXACT SAME request.
+         * ----------------------------------------------------
+         */
 
         const duplicateResponse =
           await fetch(
@@ -219,12 +323,16 @@ function App() {
         }
 
         /*
-          This should contain:
-
-            duplicate: true
-
-          and the ORIGINAL payment ID.
-        */
+         * Display the SECOND response.
+         *
+         * Expected:
+         *
+         * duplicate: true
+         * status: SUCCESS
+         * same payment ID
+         *
+         * No second charge is created.
+         */
 
         setResult(
           duplicateData
@@ -237,31 +345,40 @@ function App() {
         );
 
         return;
+      } catch (error) {
+        setResult({
+          error:
+            error.message
+        });
+
+        return;
       }
+    }
 
-      /*
-        ====================================================
-        NORMAL PAYMENT SCENARIOS
-        ====================================================
-      */
+    /*
+     * ========================================================
+     * NORMAL PAYMENT SCENARIOS
+     * ========================================================
+     */
 
-      const idempotencyKey =
+    setSelectedOutcome(
+      outcome
+    );
+
+    try {
+      const key =
         `SUB-10001-${Date.now()}`;
 
       /*
-        Remember SUCCESS key.
-
-        This is useful from a BA demonstration
-        perspective, although DUPLICATE itself
-        no longer depends on this state.
-      */
+       * Remember successful payment key.
+       */
 
       if (
         outcome ===
         "SUCCESS"
       ) {
         setLastIdempotencyKey(
-          idempotencyKey
+          key
         );
       }
 
@@ -284,7 +401,8 @@ function App() {
 
               amount: 999,
 
-              idempotencyKey
+              idempotencyKey:
+                key
             })
           }
         );
@@ -309,11 +427,6 @@ function App() {
         "SUB-10001"
       );
     } catch (error) {
-      console.error(
-        "Payment simulation error:",
-        error
-      );
-
       setResult({
         error:
           error.message
@@ -322,10 +435,10 @@ function App() {
   }
 
   /*
-    ========================================================
-    RECONCILIATION
-    ========================================================
-  */
+   * ==========================================================
+   * RECONCILIATION
+   * ==========================================================
+   */
 
   async function reconcile(
     paymentId
@@ -360,10 +473,10 @@ function App() {
   }
 
   /*
-    ========================================================
-    LOAD TIMELINE EVENTS
-    ========================================================
-  */
+   * ==========================================================
+   * TIMELINE
+   * ==========================================================
+   */
 
   async function loadEvents(
     subscriptionId
@@ -374,11 +487,8 @@ function App() {
           `${API}/subscriptions/${subscriptionId}/events`
         );
 
-      const data =
-        await response.json();
-
       setEvents(
-        data
+        await response.json()
       );
     } catch (error) {
       console.error(
@@ -389,10 +499,10 @@ function App() {
   }
 
   /*
-    ========================================================
-    SUBSCRIPTION ACTION
-    ========================================================
-  */
+   * ==========================================================
+   * SUBSCRIPTION ACTIONS
+   * ==========================================================
+   */
 
   async function subscriptionAction(
     id,
@@ -420,24 +530,594 @@ function App() {
   }
 
   /*
-    ========================================================
-    RENDER
-    ========================================================
-  */
+   * ==========================================================
+   * CUSTOMER NAVIGATION
+   * ==========================================================
+   */
+
+  const customerNav = (
+    <div className="customer-nav">
+
+      <div>
+        <strong>
+          Subscribe n Save
+        </strong>
+
+        <span>
+          Customer Store
+        </span>
+      </div>
+
+      <button
+        className={
+          mode !== "ops"
+            ? "active"
+            : ""
+        }
+        onClick={() =>
+          setMode("store")
+        }
+      >
+        Store
+      </button>
+
+      <button
+        className={
+          mode === "ops"
+            ? "active"
+            : ""
+        }
+        onClick={() =>
+          setMode("ops")
+        }
+      >
+        Operations Console
+      </button>
+
+    </div>
+  );
+
+  /*
+   * ==========================================================
+   * CUSTOMER STORE
+   * ==========================================================
+   */
+
+  if (
+    mode === "store" ||
+    mode === "product" ||
+    mode === "checkout" ||
+    mode === "confirmation"
+  ) {
+    return (
+      <>
+        {customerNav}
+
+        <main className="store-main">
+
+          {/* STORE */}
+
+          {mode === "store" && (
+            <>
+              <div className="store-hero">
+
+                <span className="eyebrow">
+                  SUBSCRIBE & SAVE
+                </span>
+
+                <h1>
+                  Get your essentials
+                  delivered automatically.
+                </h1>
+
+                <p>
+                  Subscribe once, save every
+                  month, and let us handle
+                  future billing.
+                </p>
+
+              </div>
+
+              <h2>
+                Choose a product
+              </h2>
+
+              <div className="product-grid">
+
+                {products.map(
+                  product => (
+                    <div
+                      className="product-card"
+                      key={
+                        product.id
+                      }
+                    >
+
+                      <div className="product-image">
+                        {product.id ===
+                        "coffee"
+                          ? "☕"
+                          : "📦"}
+                      </div>
+
+                      <h3>
+                        {
+                          product.name
+                        }
+                      </h3>
+
+                      <p>
+                        {
+                          product.description
+                        }
+                      </p>
+
+                      <div className="price-row">
+
+                        <strong>
+                          ₹
+                          {
+                            product.monthly
+                          }
+                        </strong>
+
+                        <span>
+                          / month
+                        </span>
+
+                      </div>
+
+                      <div className="save-pill">
+                        {
+                          product.save
+                        }
+                      </div>
+
+                      <button
+                        className="primary wide"
+                        onClick={() =>
+                          openProduct(
+                            product
+                          )
+                        }
+                      >
+                        Subscribe & Save
+                      </button>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+            </>
+          )}
+
+          {/* PRODUCT */}
+
+          {mode === "product" &&
+            selectedProduct && (
+              <div className="checkout-card">
+
+                <button
+                  className="back"
+                  onClick={() =>
+                    setMode(
+                      "store"
+                    )
+                  }
+                >
+                  ← Back to products
+                </button>
+
+                <div className="product-detail">
+
+                  <div className="product-image large">
+                    {selectedProduct.id ===
+                    "coffee"
+                      ? "☕"
+                      : "📦"}
+                  </div>
+
+                  <div>
+
+                    <span className="eyebrow">
+                      SUBSCRIBE & SAVE
+                    </span>
+
+                    <h1>
+                      {
+                        selectedProduct.name
+                      }
+                    </h1>
+
+                    <p>
+                      {
+                        selectedProduct.description
+                      }
+                    </p>
+
+                    <h2>
+                      ₹
+                      {
+                        selectedProduct.monthly
+                      }{" "}
+                      <small>
+                        / month
+                      </small>
+                    </h2>
+
+                    <div className="save-pill">
+                      {
+                        selectedProduct.save
+                      }
+                    </div>
+
+                    <label>
+                      Delivery frequency
+                    </label>
+
+                    <select
+                      value={
+                        frequency
+                      }
+                      onChange={e =>
+                        setFrequency(
+                          e.target.value
+                        )
+                      }
+                    >
+                      <option value="MONTHLY">
+                        Monthly
+                      </option>
+
+                      <option value="WEEKLY">
+                        Weekly
+                      </option>
+                    </select>
+
+                    <ul className="benefits">
+
+                      <li>
+                        Recurring delivery
+                        without re-ordering
+                      </li>
+
+                      <li>
+                        Secure tokenized
+                        payment method
+                      </li>
+
+                      <li>
+                        Cancel or pause
+                        from your subscription
+                      </li>
+
+                    </ul>
+
+                    <button
+                      className="primary"
+                      onClick={
+                        startCheckout
+                      }
+                    >
+                      Continue to payment
+                    </button>
+
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
+          {/* CHECKOUT */}
+
+          {mode === "checkout" &&
+            selectedProduct && (
+              <div className="checkout-card narrow">
+
+                <button
+                  className="back"
+                  onClick={() =>
+                    setMode(
+                      "product"
+                    )
+                  }
+                >
+                  ← Back
+                </button>
+
+                <span className="eyebrow">
+                  CHECKOUT
+                </span>
+
+                <h1>
+                  Start your subscription
+                </h1>
+
+                <div className="order-summary">
+
+                  <div>
+                    <span>
+                      {
+                        selectedProduct.name
+                      }
+                    </span>
+
+                    <strong>
+                      ₹
+                      {
+                        selectedProduct.monthly
+                      }
+                      /month
+                    </strong>
+                  </div>
+
+                  <small>
+                    Frequency:{" "}
+                    {
+                      frequency
+                    }
+                  </small>
+
+                </div>
+
+                <label>
+                  Your name
+                </label>
+
+                <input
+                  value={
+                    customerName
+                  }
+                  onChange={e =>
+                    setCustomerName(
+                      e.target.value
+                    )
+                  }
+                  placeholder="e.g. Ashwin Awachar"
+                />
+
+                <label>
+                  Card number
+                </label>
+
+                <input
+                  value={
+                    paymentMethod
+                  }
+                  onChange={e =>
+                    setPaymentMethod(
+                      e.target.value
+                        .replace(
+                          /\D/g,
+                          ""
+                        )
+                        .slice(
+                          0,
+                          16
+                        )
+                    )
+                  }
+                  placeholder="4242424242424242"
+                  inputMode="numeric"
+                />
+
+                <div className="consent-box">
+
+                  <input
+                    type="checkbox"
+                    checked={
+                      consent
+                    }
+                    onChange={e =>
+                      setConsent(
+                        e.target.checked
+                      )
+                    }
+                  />
+
+                  <span>
+                    I authorize recurring
+                    payments of ₹
+                    {
+                      selectedProduct.monthly
+                    }{" "}
+                    for this subscription
+                    according to the
+                    subscription terms.
+                  </span>
+
+                </div>
+
+                <button
+                  className="primary wide"
+                  disabled={
+                    !customerName ||
+                    paymentMethod.length <
+                      12 ||
+                    !consent
+                  }
+                  onClick={
+                    enroll
+                  }
+                >
+                  Pay ₹
+                  {
+                    selectedProduct.monthly
+                  }{" "}
+                  & Start Subscription
+                </button>
+
+                <p className="security-note">
+                  Demo only — no real
+                  payment is processed.
+                </p>
+
+              </div>
+            )}
+
+          {/* CONFIRMATION */}
+
+          {mode ===
+            "confirmation" &&
+            checkoutResult?.subscription && (
+              <div className="confirmation-card">
+
+                <div className="success-icon">
+                  ✓
+                </div>
+
+                <span className="eyebrow">
+                  SUBSCRIPTION ACTIVE
+                </span>
+
+                <h1>
+                  You're all set,{" "}
+                  {
+                    checkoutResult
+                      .subscription
+                      .customer
+                  }.
+                </h1>
+
+                <p>
+                  Your{" "}
+                  {
+                    checkoutResult
+                      .subscription
+                      .plan
+                  }{" "}
+                  subscription is now
+                  active.
+                </p>
+
+                <div className="confirmation-grid">
+
+                  <div>
+                    <small>
+                      Subscription ID
+                    </small>
+
+                    <strong>
+                      {
+                        checkoutResult
+                          .subscription
+                          .id
+                      }
+                    </strong>
+                  </div>
+
+                  <div>
+                    <small>
+                      Recurring amount
+                    </small>
+
+                    <strong>
+                      ₹
+                      {
+                        checkoutResult
+                          .subscription
+                          .amount
+                      }
+                      /month
+                    </strong>
+                  </div>
+
+                  <div>
+                    <small>
+                      Next payment
+                    </small>
+
+                    <strong>
+                      {
+                        checkoutResult
+                          .subscription
+                          .nextBillingDate
+                      }
+                    </strong>
+                  </div>
+
+                  <div>
+                    <small>
+                      Payment method
+                    </small>
+
+                    <strong>
+                      {
+                        checkoutResult
+                          .subscription
+                          .paymentMethod
+                      }
+                    </strong>
+                  </div>
+
+                </div>
+
+                <p className="note">
+                  Initial payment was
+                  customer-initiated (CIT).
+                  Future billing will be
+                  merchant-initiated (MIT).
+                </p>
+
+                <button
+                  className="primary"
+                  onClick={() =>
+                    setMode("ops")
+                  }
+                >
+                  Open Operations Console
+                </button>
+
+                <button
+                  onClick={() =>
+                    setMode("store")
+                  }
+                >
+                  Back to Store
+                </button>
+
+              </div>
+            )}
+
+        </main>
+      </>
+    );
+  }
+
+  /*
+   * ==========================================================
+   * OPERATIONS CONSOLE
+   * ==========================================================
+   */
 
   return (
     <>
-      <header>
-        <h1>
-          Subscribe n Save
-        </h1>
+      <div className="ops-topbar">
 
-        <p>
-          Payment & Subscription Simulator
-        </p>
-      </header>
+        <div>
+          <strong>
+            Subscribe n Save
+          </strong>
+
+          <span>
+            Operations Console
+          </span>
+        </div>
+
+        <button
+          onClick={() =>
+            setMode("store")
+          }
+        >
+          ← Customer Store
+        </button>
+
+      </div>
 
       <nav>
+
         {[
           "dashboard",
           "subscriptions",
@@ -446,7 +1126,7 @@ function App() {
           "reconciliation",
           "traceability"
         ].map(
-          (item) => (
+          item => (
             <button
               key={item}
               className={
@@ -458,20 +1138,20 @@ function App() {
                 setTab(item)
               }
             >
-              {item.toUpperCase()}
+              {
+                item.toUpperCase()
+              }
             </button>
           )
         )}
+
       </nav>
 
       <main>
 
-        {/* =================================================
-            DASHBOARD
-        ================================================= */}
+        {/* DASHBOARD */}
 
-        {tab ===
-          "dashboard" && (
+        {tab === "dashboard" && (
           <>
             <h2>
               Operations Dashboard
@@ -481,11 +1161,25 @@ function App() {
 
               <div className="card">
                 <small>
-                  Active subscriptions
+                  Subscriptions in demo
                 </small>
 
                 <b>
-                  982
+                  {
+                    subscriptions.length
+                  }
+                </b>
+              </div>
+
+              <div className="card">
+                <small>
+                  Payment attempts
+                </small>
+
+                <b>
+                  {
+                    payments.length
+                  }
                 </b>
               </div>
 
@@ -495,17 +1189,13 @@ function App() {
                 </small>
 
                 <b>
-                  42
-                </b>
-              </div>
-
-              <div className="card">
-                <small>
-                  Suspended
-                </small>
-
-                <b>
-                  18
+                  {
+                    subscriptions.filter(
+                      s =>
+                        s.status ===
+                        "PAYMENT_RETRY"
+                    ).length
+                  }
                 </b>
               </div>
 
@@ -515,7 +1205,13 @@ function App() {
                 </small>
 
                 <b>
-                  5
+                  {
+                    payments.filter(
+                      p =>
+                        p.status ===
+                        "UNKNOWN"
+                    ).length
+                  }
                 </b>
               </div>
 
@@ -524,13 +1220,14 @@ function App() {
             <div className="card">
 
               <h3>
-                Architecture
+                End-to-end architecture
               </h3>
 
               <p>
-                Customer → Merchant → PSP
-                → Acquirer → Card Network
-                → Issuer
+                Customer → Merchant →
+                Payment Orchestrator →
+                PSP → Acquirer →
+                Card Network → Issuer
               </p>
 
               <p className="note">
@@ -542,12 +1239,9 @@ function App() {
           </>
         )}
 
-        {/* =================================================
-            SUBSCRIPTIONS
-        ================================================= */}
+        {/* SUBSCRIPTIONS */}
 
-        {tab ===
-          "subscriptions" && (
+        {tab === "subscriptions" && (
           <>
             <h2>
               Subscription Management
@@ -558,41 +1252,23 @@ function App() {
               <table>
 
                 <thead>
+
                   <tr>
-                    <th>
-                      ID
-                    </th>
-
-                    <th>
-                      Customer
-                    </th>
-
-                    <th>
-                      Plan
-                    </th>
-
-                    <th>
-                      Amount
-                    </th>
-
-                    <th>
-                      Next Billing
-                    </th>
-
-                    <th>
-                      Status
-                    </th>
-
-                    <th>
-                      Actions
-                    </th>
+                    <th>ID</th>
+                    <th>Customer</th>
+                    <th>Plan</th>
+                    <th>Amount</th>
+                    <th>Next Billing</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
+
                 </thead>
 
                 <tbody>
 
                   {subscriptions.map(
-                    (s) => (
+                    s => (
                       <tr
                         key={
                           s.id
@@ -658,6 +1334,17 @@ function App() {
                             Resume
                           </button>
 
+                          <button
+                            onClick={() =>
+                              subscriptionAction(
+                                s.id,
+                                "cancel"
+                              )
+                            }
+                          >
+                            Cancel
+                          </button>
+
                         </td>
 
                       </tr>
@@ -672,15 +1359,12 @@ function App() {
           </>
         )}
 
-        {/* =================================================
-            PAYMENT SIMULATOR
-        ================================================= */}
+        {/* PAYMENT */}
 
-        {tab ===
-          "payment" && (
+        {tab === "payment" && (
           <>
             <h2>
-              Payment Simulator
+              Recurring Payment Simulator
             </h2>
 
             <div className="two">
@@ -688,7 +1372,7 @@ function App() {
               <div className="card">
 
                 <h3>
-                  Recurring Payment
+                  Merchant-Initiated Payment
                 </h3>
 
                 <p>
@@ -709,8 +1393,7 @@ function App() {
                   <b>
                     Payment Type:
                   </b>{" "}
-                  Merchant-Initiated
-                  Transaction (MIT)
+                  MIT
                 </p>
 
                 <p>
@@ -729,7 +1412,7 @@ function App() {
                     className={
                       selectedOutcome ===
                       "SUCCESS"
-                        ? "primary"
+                        ? "primary selected"
                         : ""
                     }
                     onClick={() =>
@@ -741,13 +1424,13 @@ function App() {
                     SUCCESS
                   </button>
 
-                  {/* DECLINE */}
+                  {/* DECLINED */}
 
                   <button
                     className={
                       selectedOutcome ===
                       "DECLINED"
-                        ? "primary"
+                        ? "primary selected"
                         : ""
                     }
                     onClick={() =>
@@ -756,7 +1439,7 @@ function App() {
                       )
                     }
                   >
-                    DECLINE
+                    DECLINED
                   </button>
 
                   {/* UNKNOWN */}
@@ -765,7 +1448,7 @@ function App() {
                     className={
                       selectedOutcome ===
                       "UNKNOWN"
-                        ? "primary"
+                        ? "primary selected"
                         : ""
                     }
                     onClick={() =>
@@ -783,7 +1466,7 @@ function App() {
                     className={
                       selectedOutcome ===
                       "3DS_REQUIRED"
-                        ? "primary"
+                        ? "primary selected"
                         : ""
                     }
                     onClick={() =>
@@ -801,7 +1484,7 @@ function App() {
                     className={
                       selectedOutcome ===
                       "DUPLICATE"
-                        ? "primary"
+                        ? "primary selected"
                         : ""
                     }
                     onClick={() =>
@@ -817,7 +1500,7 @@ function App() {
 
               </div>
 
-              {/* RESPONSE */}
+              {/* PAYMENT RESPONSE */}
 
               <div className="card">
 
@@ -827,11 +1510,13 @@ function App() {
 
                 {result ? (
                   <pre>
-                    {JSON.stringify(
-                      result,
-                      null,
-                      2
-                    )}
+                    {
+                      JSON.stringify(
+                        result,
+                        null,
+                        2
+                      )
+                    }
                   </pre>
                 ) : (
                   <p>
@@ -843,65 +1528,12 @@ function App() {
               </div>
 
             </div>
-
-            {/* BA RULES */}
-
-            <div className="card">
-
-              <h3>
-                BA Rules Demonstrated
-              </h3>
-
-              <ul>
-
-                <li>
-                  Idempotency prevents
-                  duplicate payment
-                  attempts.
-                </li>
-
-                <li>
-                  UNKNOWN is not
-                  automatically treated
-                  as DECLINED.
-                </li>
-
-                <li>
-                  UNKNOWN requires
-                  reconciliation.
-                </li>
-
-                <li>
-                  Successful payment
-                  advances the billing
-                  cycle.
-                </li>
-
-                <li>
-                  Retryable declines
-                  can enter payment
-                  retry.
-                </li>
-
-                <li>
-                  Duplicate requests
-                  using the same
-                  idempotency key are
-                  safely handled.
-                </li>
-
-              </ul>
-
-            </div>
           </>
         )}
 
-        {/* =================================================
-            TIMELINE
-        ================================================= */}
+        {/* TIMELINE */}
 
-        {tab ===
-          "timeline" && (
+        {tab === "timeline" && (
           <>
             <h2>
               Payment Timeline
@@ -923,26 +1555,17 @@ function App() {
               <div className="timeline">
 
                 {events.map(
-                  (
-                    event,
-                    index
-                  ) => (
+                  (e, i) => (
                     <div
-                      key={
-                        index
-                      }
+                      key={i}
                     >
                       <b>
-                        {
-                          event.time
-                        }
+                        {e.time}
                       </b>
 
                       {" — "}
 
-                      {
-                        event.text
-                      }
+                      {e.text}
                     </div>
                   )
                 )}
@@ -953,9 +1576,7 @@ function App() {
           </>
         )}
 
-        {/* =================================================
-            RECONCILIATION
-        ================================================= */}
+        {/* RECONCILIATION */}
 
         {tab ===
           "reconciliation" && (
@@ -1003,56 +1624,51 @@ function App() {
                 <tbody>
 
                   {payments.map(
-                    (payment) => (
+                    p => (
                       <tr
                         key={
-                          payment.id
+                          p.id
                         }
                       >
 
                         <td>
-                          {
-                            payment.id
-                          }
+                          {p.id}
                         </td>
 
                         <td>
                           {
-                            payment.subscriptionId
+                            p.subscriptionId
                           }
                         </td>
 
                         <td>
                           ₹
                           {
-                            payment.amount
+                            p.amount
                           }
                         </td>
 
                         <td>
                           <span className="badge">
                             {
-                              payment.status
+                              p.status
                             }
                           </span>
                         </td>
 
                         <td>
 
-                          {payment.status ===
-                          "UNKNOWN" ? (
+                          {p.status ===
+                          "UNKNOWN" && (
                             <button
-                              className="primary"
                               onClick={() =>
                                 reconcile(
-                                  payment.id
+                                  p.id
                                 )
                               }
                             >
                               Reconcile
                             </button>
-                          ) : (
-                            "—"
                           )}
 
                         </td>
@@ -1069,9 +1685,7 @@ function App() {
           </>
         )}
 
-        {/* =================================================
-            TRACEABILITY
-        ================================================= */}
+        {/* TRACEABILITY */}
 
         {tab ===
           "traceability" && (
@@ -1087,7 +1701,6 @@ function App() {
                 <thead>
 
                   <tr>
-
                     <th>
                       Business Requirement
                     </th>
@@ -1099,12 +1712,27 @@ function App() {
                     <th>
                       Implementation
                     </th>
-
                   </tr>
 
                 </thead>
 
                 <tbody>
+
+                  <tr>
+                    <td>
+                      Subscribe & Save
+                      enrollment
+                    </td>
+
+                    <td>
+                      US-07 to US-10
+                    </td>
+
+                    <td>
+                      Customer Store +
+                      Checkout
+                    </td>
+                  </tr>
 
                   <tr>
                     <td>
@@ -1144,7 +1772,8 @@ function App() {
                     </td>
 
                     <td>
-                      Authentication simulation
+                      Authentication
+                      simulation
                     </td>
                   </tr>
 
@@ -1164,7 +1793,8 @@ function App() {
 
                   <tr>
                     <td>
-                      UNKNOWN reconciliation
+                      UNKNOWN
+                      reconciliation
                     </td>
 
                     <td>
@@ -1178,11 +1808,12 @@ function App() {
 
                   <tr>
                     <td>
-                      Pause / Resume
+                      Pause / Resume /
+                      Cancel
                     </td>
 
                     <td>
-                      US-54 / US-56
+                      US-52 to US-56
                     </td>
 
                     <td>
