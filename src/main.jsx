@@ -27,45 +27,19 @@ const products = [
 
 function App() {
   const [mode, setMode] = useState("store");
-
-  const [selectedProduct, setSelectedProduct] =
-    useState(null);
-
-  const [frequency, setFrequency] =
-    useState("MONTHLY");
-
-  const [customerName, setCustomerName] =
-    useState("");
-
-  const [paymentMethod, setPaymentMethod] =
-    useState("");
-
-  const [consent, setConsent] =
-    useState(false);
-
-  const [checkoutResult, setCheckoutResult] =
-    useState(null);
-
-  const [tab, setTab] =
-    useState("dashboard");
-
-  const [subscriptions, setSubscriptions] =
-    useState([]);
-
-  const [payments, setPayments] =
-    useState([]);
-
-  const [events, setEvents] =
-    useState([]);
-
-  const [result, setResult] =
-    useState(null);
-
-  const [lastIdempotencyKey, setLastIdempotencyKey] =
-    useState(null);
-
-  const [selectedOutcome, setSelectedOutcome] =
-    useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [frequency, setFrequency] = useState("MONTHLY");
+  const [customerName, setCustomerName] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [checkoutResult, setCheckoutResult] = useState(null);
+  const [tab, setTab] = useState("dashboard");
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [result, setResult] = useState(null);
+  const [lastIdempotencyKey, setLastIdempotencyKey] = useState(null);
+  const [selectedOutcome, setSelectedOutcome] = useState(null);
 
   async function loadData() {
     try {
@@ -74,19 +48,12 @@ function App() {
         fetch(`${API}/payments`)
       ]);
 
-      setSubscriptions(
-        await s.json()
-      );
-
-      setPayments(
-        await p.json()
-      );
+      setSubscriptions(await s.json());
+      setPayments(await p.json());
     } catch (error) {
       setResult({
-        error:
-          "Unable to connect to backend",
-        details:
-          error.message
+        error: "Unable to connect to backend",
+        details: error.message
       });
     }
   }
@@ -95,20 +62,8 @@ function App() {
     loadData();
   }, []);
 
-  /*
-   * ==========================================================
-   * TIMELINE AUTO REFRESH
-   * ==========================================================
-   *
-   * Whenever the user opens the Timeline tab,
-   * automatically load the latest events.
-   */
-
   useEffect(() => {
-    if (
-      mode === "ops" &&
-      tab === "timeline"
-    ) {
+    if (mode === "ops" && tab === "timeline") {
       loadEvents("SUB-10001");
     }
   }, [mode, tab]);
@@ -137,57 +92,34 @@ function App() {
       return;
     }
 
-    const response =
-      await fetch(
-        `${API}/subscriptions/enroll`,
-        {
-          method: "POST",
+    const response = await fetch(
+      `${API}/subscriptions/enroll`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          customerName,
+          plan: selectedProduct.name,
+          amount: selectedProduct.monthly,
+          currency: "INR",
+          frequency,
+          paymentMethod,
+          consent: true
+        })
+      }
+    );
 
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-            customerName,
-
-            plan:
-              selectedProduct.name,
-
-            amount:
-              selectedProduct.monthly,
-
-            currency:
-              "INR",
-
-            frequency,
-
-            paymentMethod,
-
-            consent: true
-          })
-        }
-      );
-
-    const data =
-      await response.json();
+    const data = await response.json();
 
     if (!response.ok) {
-      setCheckoutResult(
-        data
-      );
-
+      setCheckoutResult(data);
       return;
     }
 
-    setCheckoutResult(
-      data
-    );
-
-    setMode(
-      "confirmation"
-    );
-
+    setCheckoutResult(data);
+    setMode("confirmation");
     await loadData();
   }
 
@@ -195,22 +127,6 @@ function App() {
    * ==========================================================
    * PAYMENT SIMULATOR
    * ==========================================================
-   *
-   * Normal scenarios:
-   *   SUCCESS
-   *   DECLINED
-   *   UNKNOWN
-   *   3DS_REQUIRED
-   *
-   * Duplicate scenario:
-   *
-   *   One click performs TWO backend requests:
-   *
-   *   1. Original SUCCESS payment
-   *   2. Same SUCCESS request again using the
-   *      SAME idempotency key
-   *
-   *   Backend detects the second request as duplicate.
    */
 
   async function simulate(outcome) {
@@ -220,146 +136,109 @@ function App() {
      * ========================================================
      * DUPLICATE REQUEST
      * ========================================================
+     *
+     * One click performs:
+     *
+     * 1. Original SUCCESS request
+     * 2. Exact same request again
+     *
+     * Both requests carry demoDuplicate=true.
+     *
+     * The first creates the original payment.
+     * The second is detected by idempotency.
+     *
+     * Timeline:
+     *
+     * Recurring MIT payment submitted — status: SUCCESS
+     * Duplicate payment request detected...
+     *
+     * There is NO billing-cycle-PAID event for this demo.
      */
 
     if (outcome === "DUPLICATE") {
-      setSelectedOutcome(
-        "DUPLICATE"
-      );
+      setSelectedOutcome("DUPLICATE");
 
       try {
-        /*
-         * Generate the duplicate-demo idempotency key.
-         */
-
         const duplicateKey =
           `DEMO-DUPLICATE-${Date.now()}`;
 
         /*
-         * ----------------------------------------------------
-         * STEP 1
-         * Create the ORIGINAL successful payment.
-         * ----------------------------------------------------
+         * STEP 1:
+         * Create original payment.
          */
 
-        const originalResponse =
-          await fetch(
-            `${API}/payments/simulate`,
-            {
-              method: "POST",
-
-              headers: {
-                "Content-Type":
-                  "application/json"
-              },
-
-              body: JSON.stringify({
-                subscriptionId:
-                  "SUB-10001",
-
-                outcome:
-                  "SUCCESS",
-
-                amount: 999,
-
-                idempotencyKey:
-                  duplicateKey
-              })
-            }
-          );
+        const originalResponse = await fetch(
+          `${API}/payments/simulate`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              subscriptionId: "SUB-10001",
+              outcome: "SUCCESS",
+              amount: 999,
+              idempotencyKey: duplicateKey,
+              demoDuplicate: true
+            })
+          }
+        );
 
         const originalData =
           await originalResponse.json();
 
-        if (
-          !originalResponse.ok
-        ) {
+        if (!originalResponse.ok) {
           throw new Error(
             originalData.error ||
               "Original payment creation failed"
           );
         }
 
-        /*
-         * Keep the key in state for reference.
-         */
-
         setLastIdempotencyKey(
           duplicateKey
         );
 
         /*
-         * ----------------------------------------------------
-         * STEP 2
-         * Replay the EXACT SAME request.
-         * ----------------------------------------------------
+         * STEP 2:
+         * Replay the exact same request.
          */
 
-        const duplicateResponse =
-          await fetch(
-            `${API}/payments/simulate`,
-            {
-              method: "POST",
-
-              headers: {
-                "Content-Type":
-                  "application/json"
-              },
-
-              body: JSON.stringify({
-                subscriptionId:
-                  "SUB-10001",
-
-                outcome:
-                  "SUCCESS",
-
-                amount: 999,
-
-                idempotencyKey:
-                  duplicateKey
-              })
-            }
-          );
+        const duplicateResponse = await fetch(
+          `${API}/payments/simulate`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              subscriptionId: "SUB-10001",
+              outcome: "SUCCESS",
+              amount: 999,
+              idempotencyKey: duplicateKey,
+              demoDuplicate: true
+            })
+          }
+        );
 
         const duplicateData =
           await duplicateResponse.json();
 
-        if (
-          !duplicateResponse.ok
-        ) {
+        if (!duplicateResponse.ok) {
           throw new Error(
             duplicateData.error ||
               "Duplicate request failed"
           );
         }
 
-        /*
-         * Display the SECOND response.
-         *
-         * Expected:
-         *
-         * duplicate: true
-         * status: SUCCESS
-         * same payment ID
-         *
-         * No second charge is created.
-         */
-
-        setResult(
-          duplicateData
-        );
+        setResult(duplicateData);
 
         await loadData();
-
-        await loadEvents(
-          "SUB-10001"
-        );
+        await loadEvents("SUB-10001");
 
         return;
       } catch (error) {
         setResult({
-          error:
-            error.message
+          error: error.message
         });
 
         return;
@@ -372,51 +251,31 @@ function App() {
      * ========================================================
      */
 
-    setSelectedOutcome(
-      outcome
-    );
+    setSelectedOutcome(outcome);
 
     try {
       const key =
         `SUB-10001-${Date.now()}`;
 
-      /*
-       * Remember successful payment key.
-       */
-
-      if (
-        outcome ===
-        "SUCCESS"
-      ) {
-        setLastIdempotencyKey(
-          key
-        );
+      if (outcome === "SUCCESS") {
+        setLastIdempotencyKey(key);
       }
 
-      const response =
-        await fetch(
-          `${API}/payments/simulate`,
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body: JSON.stringify({
-              subscriptionId:
-                "SUB-10001",
-
-              outcome,
-
-              amount: 999,
-
-              idempotencyKey:
-                key
-            })
-          }
-        );
+      const response = await fetch(
+        `${API}/payments/simulate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            subscriptionId: "SUB-10001",
+            outcome,
+            amount: 999,
+            idempotencyKey: key
+          })
+        }
+      );
 
       const data =
         await response.json();
@@ -428,19 +287,13 @@ function App() {
         );
       }
 
-      setResult(
-        data
-      );
+      setResult(data);
 
       await loadData();
-
-      await loadEvents(
-        "SUB-10001"
-      );
+      await loadEvents("SUB-10001");
     } catch (error) {
       setResult({
-        error:
-          error.message
+        error: error.message
       });
     }
   }
@@ -451,34 +304,25 @@ function App() {
    * ==========================================================
    */
 
-  async function reconcile(
-    paymentId
-  ) {
+  async function reconcile(paymentId) {
     try {
-      const response =
-        await fetch(
-          `${API}/payments/${paymentId}/reconcile`,
-          {
-            method: "POST"
-          }
-        );
+      const response = await fetch(
+        `${API}/payments/${paymentId}/reconcile`,
+        {
+          method: "POST"
+        }
+      );
 
       const data =
         await response.json();
 
-      setResult(
-        data
-      );
+      setResult(data);
 
       await loadData();
-
-      await loadEvents(
-        "SUB-10001"
-      );
+      await loadEvents("SUB-10001");
     } catch (error) {
       setResult({
-        error:
-          error.message
+        error: error.message
       });
     }
   }
@@ -489,21 +333,16 @@ function App() {
    * ==========================================================
    */
 
-  async function loadEvents(
-    subscriptionId
-  ) {
+  async function loadEvents(subscriptionId) {
     try {
-      const response =
-        await fetch(
-          `${API}/subscriptions/${subscriptionId}/events`
-        );
+      const response = await fetch(
+        `${API}/subscriptions/${subscriptionId}/events`
+      );
 
       const data =
         await response.json();
 
-      setEvents(
-        data
-      );
+      setEvents(data);
     } catch (error) {
       console.error(
         "Failed to load events:",
@@ -518,10 +357,7 @@ function App() {
    * ==========================================================
    */
 
-  async function subscriptionAction(
-    id,
-    action
-  ) {
+  async function subscriptionAction(id, action) {
     try {
       await fetch(
         `${API}/subscriptions/${id}/${action}`,
@@ -531,10 +367,7 @@ function App() {
       );
 
       await loadData();
-
-      await loadEvents(
-        id
-      );
+      await loadEvents(id);
     } catch (error) {
       console.error(
         "Subscription action failed:",
@@ -551,7 +384,6 @@ function App() {
 
   const customerNav = (
     <div className="customer-nav">
-
       <div>
         <strong>
           Subscribe n Save
@@ -587,7 +419,6 @@ function App() {
       >
         Operations Console
       </button>
-
     </div>
   );
 
@@ -609,12 +440,9 @@ function App() {
 
         <main className="store-main">
 
-          {/* STORE */}
-
           {mode === "store" && (
             <>
               <div className="store-hero">
-
                 <span className="eyebrow">
                   SUBSCRIBE & SAVE
                 </span>
@@ -629,7 +457,6 @@ function App() {
                   month, and let us handle
                   future billing.
                 </p>
-
               </div>
 
               <h2>
@@ -637,76 +464,53 @@ function App() {
               </h2>
 
               <div className="product-grid">
+                {products.map(product => (
+                  <div
+                    className="product-card"
+                    key={product.id}
+                  >
+                    <div className="product-image">
+                      {product.id === "coffee"
+                        ? "☕"
+                        : "📦"}
+                    </div>
 
-                {products.map(
-                  product => (
-                    <div
-                      className="product-card"
-                      key={
-                        product.id
+                    <h3>
+                      {product.name}
+                    </h3>
+
+                    <p>
+                      {product.description}
+                    </p>
+
+                    <div className="price-row">
+                      <strong>
+                        ₹
+                        {product.monthly}
+                      </strong>
+
+                      <span>
+                        / month
+                      </span>
+                    </div>
+
+                    <div className="save-pill">
+                      {product.save}
+                    </div>
+
+                    <button
+                      className="primary wide"
+                      onClick={() =>
+                        openProduct(product)
                       }
                     >
-
-                      <div className="product-image">
-                        {product.id ===
-                        "coffee"
-                          ? "☕"
-                          : "📦"}
-                      </div>
-
-                      <h3>
-                        {
-                          product.name
-                        }
-                      </h3>
-
-                      <p>
-                        {
-                          product.description
-                        }
-                      </p>
-
-                      <div className="price-row">
-
-                        <strong>
-                          ₹
-                          {
-                            product.monthly
-                          }
-                        </strong>
-
-                        <span>
-                          / month
-                        </span>
-
-                      </div>
-
-                      <div className="save-pill">
-                        {
-                          product.save
-                        }
-                      </div>
-
-                      <button
-                        className="primary wide"
-                        onClick={() =>
-                          openProduct(
-                            product
-                          )
-                        }
-                      >
-                        Subscribe & Save
-                      </button>
-
-                    </div>
-                  )
-                )}
-
+                      Subscribe & Save
+                    </button>
+                  </div>
+                ))}
               </div>
             </>
           )}
-
-          {/* PRODUCT */}
 
           {mode === "product" &&
             selectedProduct && (
@@ -715,9 +519,7 @@ function App() {
                 <button
                   className="back"
                   onClick={() =>
-                    setMode(
-                      "store"
-                    )
+                    setMode("store")
                   }
                 >
                   ← Back to products
@@ -726,44 +528,34 @@ function App() {
                 <div className="product-detail">
 
                   <div className="product-image large">
-                    {selectedProduct.id ===
-                    "coffee"
+                    {selectedProduct.id === "coffee"
                       ? "☕"
                       : "📦"}
                   </div>
 
                   <div>
-
                     <span className="eyebrow">
                       SUBSCRIBE & SAVE
                     </span>
 
                     <h1>
-                      {
-                        selectedProduct.name
-                      }
+                      {selectedProduct.name}
                     </h1>
 
                     <p>
-                      {
-                        selectedProduct.description
-                      }
+                      {selectedProduct.description}
                     </p>
 
                     <h2>
                       ₹
-                      {
-                        selectedProduct.monthly
-                      }{" "}
+                      {selectedProduct.monthly}{" "}
                       <small>
                         / month
                       </small>
                     </h2>
 
                     <div className="save-pill">
-                      {
-                        selectedProduct.save
-                      }
+                      {selectedProduct.save}
                     </div>
 
                     <label>
@@ -771,9 +563,7 @@ function App() {
                     </label>
 
                     <select
-                      value={
-                        frequency
-                      }
+                      value={frequency}
                       onChange={e =>
                         setFrequency(
                           e.target.value
@@ -790,7 +580,6 @@ function App() {
                     </select>
 
                     <ul className="benefits">
-
                       <li>
                         Recurring delivery
                         without re-ordering
@@ -805,7 +594,6 @@ function App() {
                         Cancel or pause
                         from your subscription
                       </li>
-
                     </ul>
 
                     <button
@@ -816,15 +604,11 @@ function App() {
                     >
                       Continue to payment
                     </button>
-
                   </div>
 
                 </div>
-
               </div>
             )}
-
-          {/* CHECKOUT */}
 
           {mode === "checkout" &&
             selectedProduct && (
@@ -833,9 +617,7 @@ function App() {
                 <button
                   className="back"
                   onClick={() =>
-                    setMode(
-                      "product"
-                    )
+                    setMode("product")
                   }
                 >
                   ← Back
@@ -850,30 +632,22 @@ function App() {
                 </h1>
 
                 <div className="order-summary">
-
                   <div>
                     <span>
-                      {
-                        selectedProduct.name
-                      }
+                      {selectedProduct.name}
                     </span>
 
                     <strong>
                       ₹
-                      {
-                        selectedProduct.monthly
-                      }
+                      {selectedProduct.monthly}
                       /month
                     </strong>
                   </div>
 
                   <small>
                     Frequency:{" "}
-                    {
-                      frequency
-                    }
+                    {frequency}
                   </small>
-
                 </div>
 
                 <label>
@@ -881,9 +655,7 @@ function App() {
                 </label>
 
                 <input
-                  value={
-                    customerName
-                  }
+                  value={customerName}
                   onChange={e =>
                     setCustomerName(
                       e.target.value
@@ -897,9 +669,7 @@ function App() {
                 </label>
 
                 <input
-                  value={
-                    paymentMethod
-                  }
+                  value={paymentMethod}
                   onChange={e =>
                     setPaymentMethod(
                       e.target.value
@@ -907,10 +677,7 @@ function App() {
                           /\D/g,
                           ""
                         )
-                        .slice(
-                          0,
-                          16
-                        )
+                        .slice(0, 16)
                     )
                   }
                   placeholder="4242424242424242"
@@ -918,12 +685,9 @@ function App() {
                 />
 
                 <div className="consent-box">
-
                   <input
                     type="checkbox"
-                    checked={
-                      consent
-                    }
+                    checked={consent}
                     onChange={e =>
                       setConsent(
                         e.target.checked
@@ -934,32 +698,24 @@ function App() {
                   <span>
                     I authorize recurring
                     payments of ₹
-                    {
-                      selectedProduct.monthly
-                    }{" "}
+                    {selectedProduct.monthly}{" "}
                     for this subscription
                     according to the
                     subscription terms.
                   </span>
-
                 </div>
 
                 <button
                   className="primary wide"
                   disabled={
                     !customerName ||
-                    paymentMethod.length <
-                      12 ||
+                    paymentMethod.length < 12 ||
                     !consent
                   }
-                  onClick={
-                    enroll
-                  }
+                  onClick={enroll}
                 >
                   Pay ₹
-                  {
-                    selectedProduct.monthly
-                  }{" "}
+                  {selectedProduct.monthly}{" "}
                   & Start Subscription
                 </button>
 
@@ -967,14 +723,10 @@ function App() {
                   Demo only — no real
                   payment is processed.
                 </p>
-
               </div>
             )}
 
-          {/* CONFIRMATION */}
-
-          {mode ===
-            "confirmation" &&
+          {mode === "confirmation" &&
             checkoutResult?.subscription && (
               <div className="confirmation-card">
 
@@ -1109,7 +861,6 @@ function App() {
   return (
     <>
       <div className="ops-topbar">
-
         <div>
           <strong>
             Subscribe n Save
@@ -1127,11 +878,9 @@ function App() {
         >
           ← Customer Store
         </button>
-
       </div>
 
       <nav>
-
         {[
           "dashboard",
           "subscriptions",
@@ -1139,26 +888,21 @@ function App() {
           "timeline",
           "reconciliation",
           "traceability"
-        ].map(
-          item => (
-            <button
-              key={item}
-              className={
-                tab === item
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setTab(item)
-              }
-            >
-              {
-                item.toUpperCase()
-              }
-            </button>
-          )
-        )}
-
+        ].map(item => (
+          <button
+            key={item}
+            className={
+              tab === item
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setTab(item)
+            }
+          >
+            {item.toUpperCase()}
+          </button>
+        ))}
       </nav>
 
       <main>
@@ -1179,9 +923,7 @@ function App() {
                 </small>
 
                 <b>
-                  {
-                    subscriptions.length
-                  }
+                  {subscriptions.length}
                 </b>
               </div>
 
@@ -1191,9 +933,7 @@ function App() {
                 </small>
 
                 <b>
-                  {
-                    payments.length
-                  }
+                  {payments.length}
                 </b>
               </div>
 
@@ -1266,7 +1006,6 @@ function App() {
               <table>
 
                 <thead>
-
                   <tr>
                     <th>ID</th>
                     <th>Customer</th>
@@ -1276,95 +1015,78 @@ function App() {
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
-
                 </thead>
 
                 <tbody>
+                  {subscriptions.map(s => (
+                    <tr key={s.id}>
 
-                  {subscriptions.map(
-                    s => (
-                      <tr
-                        key={
-                          s.id
-                        }
-                      >
+                      <td>
+                        {s.id}
+                      </td>
 
-                        <td>
-                          {s.id}
-                        </td>
+                      <td>
+                        {s.customer}
+                      </td>
 
-                        <td>
-                          {
-                            s.customer
+                      <td>
+                        {s.plan}
+                      </td>
+
+                      <td>
+                        ₹
+                        {s.amount}
+                      </td>
+
+                      <td>
+                        {s.nextBillingDate}
+                      </td>
+
+                      <td>
+                        <span className="badge">
+                          {s.status}
+                        </span>
+                      </td>
+
+                      <td>
+
+                        <button
+                          onClick={() =>
+                            subscriptionAction(
+                              s.id,
+                              "pause"
+                            )
                           }
-                        </td>
+                        >
+                          Pause
+                        </button>
 
-                        <td>
-                          {s.plan}
-                        </td>
-
-                        <td>
-                          ₹
-                          {
-                            s.amount
+                        <button
+                          onClick={() =>
+                            subscriptionAction(
+                              s.id,
+                              "resume"
+                            )
                           }
-                        </td>
+                        >
+                          Resume
+                        </button>
 
-                        <td>
-                          {
-                            s.nextBillingDate
+                        <button
+                          onClick={() =>
+                            subscriptionAction(
+                              s.id,
+                              "cancel"
+                            )
                           }
-                        </td>
+                        >
+                          Cancel
+                        </button>
 
-                        <td>
-                          <span className="badge">
-                            {
-                              s.status
-                            }
-                          </span>
-                        </td>
+                      </td>
 
-                        <td>
-
-                          <button
-                            onClick={() =>
-                              subscriptionAction(
-                                s.id,
-                                "pause"
-                              )
-                            }
-                          >
-                            Pause
-                          </button>
-
-                          <button
-                            onClick={() =>
-                              subscriptionAction(
-                                s.id,
-                                "resume"
-                              )
-                            }
-                          >
-                            Resume
-                          </button>
-
-                          <button
-                            onClick={() =>
-                              subscriptionAction(
-                                s.id,
-                                "cancel"
-                              )
-                            }
-                          >
-                            Cancel
-                          </button>
-
-                        </td>
-
-                      </tr>
-                    )
-                  )}
-
+                    </tr>
+                  ))}
                 </tbody>
 
               </table>
@@ -1420,8 +1142,6 @@ function App() {
 
                 <div className="scenario-buttons">
 
-                  {/* SUCCESS */}
-
                   <button
                     className={
                       selectedOutcome ===
@@ -1430,15 +1150,11 @@ function App() {
                         : ""
                     }
                     onClick={() =>
-                      simulate(
-                        "SUCCESS"
-                      )
+                      simulate("SUCCESS")
                     }
                   >
                     SUCCESS
                   </button>
-
-                  {/* DECLINED */}
 
                   <button
                     className={
@@ -1448,15 +1164,11 @@ function App() {
                         : ""
                     }
                     onClick={() =>
-                      simulate(
-                        "DECLINED"
-                      )
+                      simulate("DECLINED")
                     }
                   >
                     DECLINED
                   </button>
-
-                  {/* UNKNOWN */}
 
                   <button
                     className={
@@ -1466,15 +1178,11 @@ function App() {
                         : ""
                     }
                     onClick={() =>
-                      simulate(
-                        "UNKNOWN"
-                      )
+                      simulate("UNKNOWN")
                     }
                   >
                     TIMEOUT / UNKNOWN
                   </button>
-
-                  {/* 3DS */}
 
                   <button
                     className={
@@ -1492,8 +1200,6 @@ function App() {
                     3DS REQUIRED
                   </button>
 
-                  {/* DUPLICATE */}
-
                   <button
                     className={
                       selectedOutcome ===
@@ -1502,9 +1208,7 @@ function App() {
                         : ""
                     }
                     onClick={() =>
-                      simulate(
-                        "DUPLICATE"
-                      )
+                      simulate("DUPLICATE")
                     }
                   >
                     DUPLICATE REQUEST
@@ -1514,8 +1218,6 @@ function App() {
 
               </div>
 
-              {/* PAYMENT RESPONSE */}
-
               <div className="card">
 
                 <h3>
@@ -1524,13 +1226,11 @@ function App() {
 
                 {result ? (
                   <pre>
-                    {
-                      JSON.stringify(
-                        result,
-                        null,
-                        2
-                      )
-                    }
+                    {JSON.stringify(
+                      result,
+                      null,
+                      2
+                    )}
                   </pre>
                 ) : (
                   <p>
@@ -1570,9 +1270,7 @@ function App() {
 
                 {events.map(
                   (e, i) => (
-                    <div
-                      key={i}
-                    >
+                    <div key={i}>
                       <b>
                         {e.time}
                       </b>
@@ -1592,8 +1290,7 @@ function App() {
 
         {/* RECONCILIATION */}
 
-        {tab ===
-          "reconciliation" && (
+        {tab === "reconciliation" && (
           <>
             <h2>
               Payment Reconciliation
@@ -1610,7 +1307,6 @@ function App() {
               <table>
 
                 <thead>
-
                   <tr>
                     <th>
                       Payment
@@ -1632,66 +1328,49 @@ function App() {
                       Action
                     </th>
                   </tr>
-
                 </thead>
 
                 <tbody>
 
-                  {payments.map(
-                    p => (
-                      <tr
-                        key={
-                          p.id
-                        }
-                      >
+                  {payments.map(p => (
+                    <tr key={p.id}>
 
-                        <td>
-                          {
-                            p.id
-                          }
-                        </td>
+                      <td>
+                        {p.id}
+                      </td>
 
-                        <td>
-                          {
-                            p.subscriptionId
-                          }
-                        </td>
+                      <td>
+                        {p.subscriptionId}
+                      </td>
 
-                        <td>
-                          ₹
-                          {
-                            p.amount
-                          }
-                        </td>
+                      <td>
+                        ₹
+                        {p.amount}
+                      </td>
 
-                        <td>
-                          <span className="badge">
-                            {
-                              p.status
-                            }
-                          </span>
-                        </td>
+                      <td>
+                        <span className="badge">
+                          {p.status}
+                        </span>
+                      </td>
 
-                        <td>
-
-                          {p.status ===
+                      <td>
+                        {p.status ===
                           "UNKNOWN" && (
-                            <button
-                              onClick={() =>
-                                reconcile(
-                                  p.id
-                                )
-                              }
-                            >
-                              Reconcile
-                            </button>
-                          )}
+                          <button
+                            onClick={() =>
+                              reconcile(
+                                p.id
+                              )
+                            }
+                          >
+                            Reconcile
+                          </button>
+                        )}
+                      </td>
 
-                        </td>
-
-                      </tr>
-                    )
-                  )}
+                    </tr>
+                  ))}
 
                 </tbody>
 
@@ -1703,8 +1382,7 @@ function App() {
 
         {/* TRACEABILITY */}
 
-        {tab ===
-          "traceability" && (
+        {tab === "traceability" && (
           <>
             <h2>
               Requirement Traceability
@@ -1715,7 +1393,6 @@ function App() {
               <table>
 
                 <thead>
-
                   <tr>
                     <th>
                       Business Requirement
@@ -1729,7 +1406,6 @@ function App() {
                       Implementation
                     </th>
                   </tr>
-
                 </thead>
 
                 <tbody>
